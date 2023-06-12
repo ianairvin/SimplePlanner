@@ -9,7 +9,7 @@ class GetCalendarsUseCase @Inject constructor(
     private val calendarRepository : CalendarRepository
     )
 {
-    operator fun invoke(permissionsGranted: Boolean) : List<Calendar> {
+    operator fun invoke(permissionsGranted: Boolean) : ArrayList<Calendar> {
         return calendarRepository.getCalendars(permissionsGranted)
     }
 }

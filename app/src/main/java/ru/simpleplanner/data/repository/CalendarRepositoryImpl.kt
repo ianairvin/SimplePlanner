@@ -13,9 +13,8 @@ class CalendarRepositoryImpl @Inject constructor (
 ): CalendarRepository{
 
     val appContext = app
-    override fun getCalendars(permissionsGranted: Boolean) : List<Calendar>{
-        val calendars = mutableListOf<Calendar>()
-        Log.i("Permission", permissionsGranted.toString())
+    override fun getCalendars(permissionsGranted: Boolean) : ArrayList<Calendar>{
+        val calendars = arrayListOf<Calendar>()
         if (permissionsGranted) {
             val projection = arrayOf(
                 CalendarContract.Calendars._ID,
@@ -52,7 +51,6 @@ class CalendarRepositoryImpl @Inject constructor (
                         cursor.getString(PROJECTION_SYNC_EVENTS_INDEX),
                         cursor.getString(PROJECTION_CALENDAR_TIME_ZONE_INDEX)
                     )
-                    Log.i("CalendarItem", calendar.id)
                     calendars.add(calendar)
                 }
             }

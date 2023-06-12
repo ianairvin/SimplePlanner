@@ -1,6 +1,7 @@
 package ru.simpleplanner.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -9,7 +10,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +35,7 @@ import java.time.format.DateTimeFormatter
 
 @AndroidEntryPoint
 @OptIn(ExperimentalPermissionsApi::class)
+@ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
 
     val eventVM: EventVM by viewModels()
@@ -36,7 +43,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SimplePlannerTheme{
+            SimplePlannerTheme {
                 eventActivity(eventVM)
             }
         }
@@ -44,19 +51,20 @@ class MainActivity : ComponentActivity() {
 
     @ExperimentalPermissionsApi
     @Composable
-    fun eventActivity(eventVM: EventVM){
+    fun eventActivity(eventVM: EventVM) {
         val context = LocalContext.current
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxSize()
-        ){
+        ) {
             pickDay(eventVM)
             val permissionsState = rememberMultiplePermissionsState(
                 permissions = listOf(
                     android.Manifest.permission.READ_CALENDAR,
                     android.Manifest.permission.WRITE_CALENDAR
-                ))
+                )
+            )
             getPermissions(permissionsState, eventVM)
         }
     }
@@ -71,9 +79,11 @@ class MainActivity : ComponentActivity() {
             eventVM.permissionsGranted.value = true
             listCalendars()
         } else {
-            Column (modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center){
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text("Добавьте разрешение для использования календаря.")
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { permissionsState.launchMultiplePermissionRequest() }) {
@@ -84,7 +94,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun pickDay(eventVM: EventVM){
+    fun pickDay(eventVM: EventVM) {
         val formattedDate = remember {
             derivedStateOf {
                 DateTimeFormatter
@@ -125,20 +135,53 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun listCalendars(){
+    fun listCalendars() {
         eventVM.getCalendars()
-        LazyColumn(){
-            items(5){
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(shape = RoundedCornerShape(16.dp))
-                        .background(Color.Gray)
-                ) {
-                    //Text(text = eventVM.calendarList!!.value.get(0).id)
+        var expanded by remember { mutableStateOf(false) }
+        var selectedOptionText by remember { mutableStateOf("") }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp)
+        ) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = {
+                    expanded = !expanded
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+            ) {
+                TextField(
+                    value = selectedOptionText,
+                    onValueChange = { selectedOptionText },
+                    readOnly = true,
+                    label = { Text("Выберите календарь") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(
+                            expanded = expanded
+                        )
+                    },
+                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                    modifier = Modifier.menuAnchor()
+                )
+                if (eventVM.calendarList.value.isNotEmpty()) {
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = {
+                            expanded = false
+                        }
+                    ) {
+                        eventVM.calendarList.value.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = { Text(text = selectionOption.displayName) },
+                                onClick = {
+                                    selectedOptionText = selectionOption.displayName
+                                    eventVM.pickedCalendar = selectionOption.displayName
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
