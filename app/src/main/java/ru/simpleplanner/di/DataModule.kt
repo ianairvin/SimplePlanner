@@ -6,7 +6,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ru.simpleplanner.data.repository.CalendarRepositoryImpl
+import ru.simpleplanner.data.repository.EventRepositoryImpl
 import ru.simpleplanner.domain.repository.CalendarRepository
+import ru.simpleplanner.domain.repository.EventRepository
 import javax.inject.Singleton
 
 @Module
@@ -16,5 +18,11 @@ class DataModule {
     @Singleton
     fun provideCalendarRepository(app: Application) : CalendarRepository {
         return CalendarRepositoryImpl(app = app)
+    }
+
+    @Provides
+    @Singleton
+    fun provideEventRepository(app: Application) : EventRepository {
+        return EventRepositoryImpl(app = app)
     }
 }

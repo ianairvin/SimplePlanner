@@ -1,13 +1,13 @@
 package ru.simpleplanner.presentation
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -44,40 +44,38 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             SimplePlannerTheme {
-                eventActivity(eventVM)
+                eventActivity()
             }
         }
     }
 
     @ExperimentalPermissionsApi
     @Composable
-    fun eventActivity(eventVM: EventVM) {
+    fun eventActivity() {
         val context = LocalContext.current
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            pickDay(eventVM)
+            pickDay()
             val permissionsState = rememberMultiplePermissionsState(
                 permissions = listOf(
                     android.Manifest.permission.READ_CALENDAR,
                     android.Manifest.permission.WRITE_CALENDAR
                 )
             )
-            getPermissions(permissionsState, eventVM)
+            getPermissions(permissionsState)
         }
     }
 
     @ExperimentalPermissionsApi
     @Composable
-    private fun getPermissions(
-        permissionsState: MultiplePermissionsState,
-        eventVM: EventVM
-    ) {
+    private fun getPermissions(permissionsState: MultiplePermissionsState) {
         if (permissionsState.allPermissionsGranted) {
             eventVM.permissionsGranted.value = true
             listCalendars()
+            listEvents()
         } else {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -94,12 +92,12 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun pickDay(eventVM: EventVM) {
+    fun pickDay() {
         val formattedDate = remember {
             derivedStateOf {
                 DateTimeFormatter
                     .ofPattern("dd mmm")
-                    .format(eventVM.pickedDate.value)
+                    .format(eventVM.selectedDate.value)
             }
         }
         val dateDialogState = rememberMaterialDialogState()
@@ -109,7 +107,7 @@ class MainActivity : ComponentActivity() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
-            Text(text = eventVM.pickedDate.value.toString())
+            Text(text = eventVM.selectedDate.value.toString())
             Spacer(modifier = Modifier.padding(8.dp))
             Button(onClick = {
                 dateDialogState.show()
@@ -126,10 +124,10 @@ class MainActivity : ComponentActivity() {
             }
         ) {
             datepicker(
-                initialDate = eventVM.pickedDate.value,
+                initialDate = eventVM.selectedDate.value,
                 title = ""
             ) {
-                eventVM.pickedDate.value = it
+                eventVM.selectedDate.value = it
             }
         }
     }
@@ -138,7 +136,7 @@ class MainActivity : ComponentActivity() {
     fun listCalendars() {
         eventVM.getCalendars()
         var expanded by remember { mutableStateOf(false) }
-        var selectedOptionText by remember { mutableStateOf("") }
+        var selectedCalendar by remember { mutableStateOf("") }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -151,8 +149,8 @@ class MainActivity : ComponentActivity() {
                 }
             ) {
                 TextField(
-                    value = selectedOptionText,
-                    onValueChange = { selectedOptionText },
+                    value = selectedCalendar,
+                    onValueChange = { selectedCalendar },
                     readOnly = true,
                     label = { Text("Выберите календарь") },
                     trailingIcon = {
@@ -163,25 +161,44 @@ class MainActivity : ComponentActivity() {
                     colors = ExposedDropdownMenuDefaults.textFieldColors(),
                     modifier = Modifier.menuAnchor()
                 )
-                if (eventVM.calendarList.value.isNotEmpty()) {
+                if (eventVM.calendars.value.isNotEmpty()) {
                     ExposedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = {
                             expanded = false
                         }
                     ) {
-                        eventVM.calendarList.value.forEach { selectionOption ->
+                        eventVM.calendars.value.forEach { calendarItem ->
                             DropdownMenuItem(
-                                text = { Text(text = selectionOption.displayName) },
+                                text = { Text(text = calendarItem.displayName) },
                                 onClick = {
-                                    selectedOptionText = selectionOption.displayName
-                                    eventVM.pickedCalendar = selectionOption.displayName
+                                    selectedCalendar = calendarItem.displayName
+                                    eventVM.selectedCalendar.value = calendarItem.displayName
+                                    eventVM.getEvents()
                                     expanded = false
                                 }
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun listEvents(){
+        LazyColumn(){
+            itemsIndexed(eventVM.events.value){ _, item ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(shape = RoundedCornerShape(16.dp))
+                        .background(Color.Gray)
+                ) {
+                    Text(text = item.name)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
