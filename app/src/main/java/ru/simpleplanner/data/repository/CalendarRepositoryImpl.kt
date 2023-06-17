@@ -13,9 +13,9 @@ class CalendarRepositoryImpl @Inject constructor (
 ): CalendarRepository{
 
     val appContext = app
-    override fun getCalendars(permissionsGranted: Boolean) : ArrayList<Calendar>{
-        val calendars = arrayListOf<Calendar>()
+    override fun getCalendars(permissionsGranted: Boolean) : List<Calendar> {
         if (permissionsGranted) {
+            val calendars = arrayListOf<Calendar>()
             val projection = arrayOf(
                 CalendarContract.Calendars._ID,
                 CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
@@ -47,15 +47,19 @@ class CalendarRepositoryImpl @Inject constructor (
                         cursor.getString(PROJECTION_ID_INDEX),
                         cursor.getString(PROJECTION_CALENDAR_DISPLAY_NAME_INDEX),
                         cursor.getString(PROJECTION_CALENDAR_COLOR_INDEX),
-                        cursor.getString(PROJECTION_VISIBLE_INDEX),
+                        cursor.getString(PROJECTION_VISIBLE_INDEX).toInt(),
                         cursor.getString(PROJECTION_SYNC_EVENTS_INDEX),
                         cursor.getString(PROJECTION_CALENDAR_TIME_ZONE_INDEX)
                     )
-                    calendars.add(calendar)
+                    if(calendar.visible == 1) {
+                        calendars.add(calendar)
+                    }
                 }
             }
             cursor?.close()
+            return calendars
+        } else {
+            return emptyList<Calendar>()
         }
-        return calendars
     }
 }

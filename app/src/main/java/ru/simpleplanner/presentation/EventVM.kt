@@ -1,5 +1,6 @@
 package ru.simpleplanner.presentation
 
+import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -10,6 +11,7 @@ import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ru.simpleplanner.domain.entities.Event
 import ru.simpleplanner.domain.use_case.event_uc.GetEventsUseCase
+import java.time.ZoneOffset
 
 @HiltViewModel
 class EventVM @Inject constructor(
@@ -17,28 +19,31 @@ class EventVM @Inject constructor(
     private val getEventsUseCase: GetEventsUseCase
 ): ViewModel() {
 
-    lateinit var calendars : MutableState<ArrayList<Calendar>>
-    lateinit var events : MutableState<ArrayList<Event>>
+    lateinit var calendars : MutableState<List<Calendar>>
+    lateinit var events : MutableState<List<Event>>
 
     val selectedDate: MutableState<LocalDate> by lazy {
         mutableStateOf(LocalDate.now())
-    }
-
-    val selectedCalendar: MutableState<String> by lazy {
-        mutableStateOf("")
     }
 
     val permissionsGranted : MutableState<Boolean> by lazy {
         mutableStateOf(false)
     }
 
+    val selectedCalendarName: MutableState<String> by lazy {
+        mutableStateOf("")
+    }
+
+    val selectedCalendarId: MutableState<String> by lazy {
+        mutableStateOf("")
+    }
+
     fun getCalendars(){
         calendars = mutableStateOf(getCalendarsUseCase(permissionsGranted.value))
-        selectedCalendar.value = calendars.value[0].displayName
-        getEvents()
+        Log.i("changeCalendar", selectedCalendarName.value)
     }
 
     fun getEvents(){
-        events = mutableStateOf(getEventsUseCase(selectedDate.value))
+        events = mutableStateOf(getEventsUseCase(selectedDate.value, selectedCalendarId.value))
     }
 }

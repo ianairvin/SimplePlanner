@@ -1,6 +1,7 @@
 package ru.simpleplanner.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -10,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -21,7 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
@@ -52,7 +56,6 @@ class MainActivity : ComponentActivity() {
     @ExperimentalPermissionsApi
     @Composable
     fun eventActivity() {
-        val context = LocalContext.current
         Column(
             modifier = Modifier
                 .padding(16.dp)
@@ -65,28 +68,28 @@ class MainActivity : ComponentActivity() {
                     android.Manifest.permission.WRITE_CALENDAR
                 )
             )
-            getPermissions(permissionsState)
+            if (permissionsState.allPermissionsGranted) {
+                eventVM.permissionsGranted.value = true
+                listCalendars()
+                listEvents()
+            } else {
+                getPermissions(permissionsState)
+            }
         }
     }
 
     @ExperimentalPermissionsApi
     @Composable
     private fun getPermissions(permissionsState: MultiplePermissionsState) {
-        if (permissionsState.allPermissionsGranted) {
-            eventVM.permissionsGranted.value = true
-            listCalendars()
-            listEvents()
-        } else {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("Добавьте разрешение для использования календаря.")
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { permissionsState.launchMultiplePermissionRequest() }) {
-                    Text("Дать разрешение")
-                }
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Добавьте разрешение для использования календаря.")
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { permissionsState.launchMultiplePermissionRequest() }) {
+                Text("Дать разрешение")
             }
         }
     }
@@ -119,13 +122,14 @@ class MainActivity : ComponentActivity() {
             dialogState = dateDialogState,
             buttons = {
                 positiveButton(text = "ОК") {
+                    eventVM.getEvents()
                 }
                 negativeButton(text = "Отмена")
             }
         ) {
             datepicker(
                 initialDate = eventVM.selectedDate.value,
-                title = ""
+                title = "",
             ) {
                 eventVM.selectedDate.value = it
             }
@@ -173,7 +177,8 @@ class MainActivity : ComponentActivity() {
                                 text = { Text(text = calendarItem.displayName) },
                                 onClick = {
                                     selectedCalendar = calendarItem.displayName
-                                    eventVM.selectedCalendar.value = calendarItem.displayName
+                                    eventVM.selectedCalendarName.value = calendarItem.displayName
+                                    eventVM.selectedCalendarId.value = calendarItem.id
                                     eventVM.getEvents()
                                     expanded = false
                                 }
@@ -187,18 +192,37 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun listEvents(){
-        LazyColumn(){
-            itemsIndexed(eventVM.events.value){ _, item ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(shape = RoundedCornerShape(16.dp))
-                        .background(Color.Gray)
-                ) {
-                    Text(text = item.name)
+        if(eventVM.selectedCalendarId.value != "") {
+            LazyColumn() {
+                itemsIndexed(eventVM.events.value) { _, item ->
+                    Row(
+                        modifier = Modifier
+                            .height(64.dp)
+                            .fillMaxWidth()
+                            .padding(16.dp, 8.dp, 16.dp, 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ){
+                        Text(
+                            text = item.start.toString() + "\n" + item.end.toString(),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(shape = RoundedCornerShape(16.dp))
+                                .fillMaxHeight()
+                                .background(Color.Gray)
+                                .weight(4f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = item.title,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
