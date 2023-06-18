@@ -1,7 +1,9 @@
 package ru.simpleplanner.presentation
 
+import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -10,21 +12,28 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalConsumer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -42,7 +51,7 @@ import java.time.format.DateTimeFormatter
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
 
-    val eventVM: EventVM by viewModels()
+    private val eventVM: EventVM by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,12 +64,15 @@ class MainActivity : ComponentActivity() {
 
     @ExperimentalPermissionsApi
     @Composable
-    fun eventActivity() {
+    private fun eventActivity() {
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
+            eventVM.getCalendars()
+            eventVM.getEvents()
+            settings()
             pickDay()
             val permissionsState = rememberMultiplePermissionsState(
                 permissions = listOf(
@@ -70,10 +82,80 @@ class MainActivity : ComponentActivity() {
             )
             if (permissionsState.allPermissionsGranted) {
                 eventVM.permissionsGranted.value = true
-                listCalendars()
+               // listCalendars()
                 listEvents()
             } else {
                 getPermissions(permissionsState)
+            }
+        }
+    }
+
+    @ExperimentalMaterial3Api
+    @Composable
+    private fun settings(){
+        var openDialog = remember { mutableStateOf(false)}
+        Column() {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp)
+                    .height(36.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { openDialog.value = true })
+                {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                }
+            }
+            if(openDialog.value == true){
+                AlertDialog(onDismissRequest = { openDialog.value = false }) {
+                    Surface(
+                        modifier = Modifier
+                            .width(360.dp)
+                            .wrapContentHeight(),
+                        shape = MaterialTheme.shapes.large,
+                        tonalElevation = AlertDialogDefaults.TonalElevation
+                        ) {
+                        Column(modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                                eventVM.calendars.value.forEach { item ->
+                                    var checked by remember {
+                                        mutableStateOf(eventVM.selectedCalendarsId.contains(item.id))
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = checked,
+                                            onCheckedChange = { checked_ ->
+                                                checked = checked_
+                                                if(checked == true) {
+                                                    eventVM.selectedCalendarsId.add(item.id)
+                                                } else {
+                                                    eventVM.selectedCalendarsId.remove(item.id)
+                                                }
+                                            }
+                                        )
+                                        Text(
+                                            modifier = Modifier.padding(start = 2.dp),
+                                            text = item.displayName
+                                        )
+                                    }
+                                }
+                            Spacer(modifier = Modifier.height(24.dp))
+                            TextButton(
+                                onClick = {
+                                    openDialog.value = false
+                                    eventVM.getEvents()
+                                },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text("Применить")
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -136,7 +218,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
+  /*  @Composable
     fun listCalendars() {
         eventVM.getCalendars()
         var expanded by remember { mutableStateOf(false) }
@@ -188,42 +270,40 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
+    } */
 
     @Composable
     fun listEvents(){
-        if(eventVM.selectedCalendarId.value != "") {
-            LazyColumn() {
-                itemsIndexed(eventVM.events.value) { _, item ->
-                    Row(
+        LazyColumn() {
+            itemsIndexed(eventVM.events.value) { _, item ->
+                Row(
+                    modifier = Modifier
+                        .height(64.dp)
+                        .fillMaxWidth()
+                        .padding(16.dp, 8.dp, 16.dp, 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ){
+                    Text(
+                        text = item.start.toString() + "\n" + item.end.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
                         modifier = Modifier
-                            .height(64.dp)
-                            .fillMaxWidth()
-                            .padding(16.dp, 8.dp, 16.dp, 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ){
+                            .clip(shape = RoundedCornerShape(16.dp))
+                            .fillMaxHeight()
+                            .background(Color.Gray)
+                            .weight(4f),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = item.start.toString() + "\n" + item.end.toString(),
-                            modifier = Modifier.weight(1f)
+                            text = item.title,
+                            textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(shape = RoundedCornerShape(16.dp))
-                                .fillMaxHeight()
-                                .background(Color.Gray)
-                                .weight(4f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = item.title,
-                                textAlign = TextAlign.Center
-                            )
-                        }
                     }
                 }
             }
-        }
+        } // добавить else
     }
 }
