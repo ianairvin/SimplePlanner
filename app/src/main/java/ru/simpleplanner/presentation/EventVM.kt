@@ -18,8 +18,7 @@ import java.time.ZoneOffset
 @HiltViewModel
 class EventVM @Inject constructor(
     private val getCalendarsUseCase: GetCalendarsUseCase,
-    private val getEventsUseCase: GetEventsUseCase,
-    private val savedStateHandle: SavedStateHandle
+    private val getEventsUseCase: GetEventsUseCase
 ): ViewModel() {
 
     lateinit var calendars : MutableState<List<Calendar>>
@@ -37,16 +36,15 @@ class EventVM @Inject constructor(
         mutableStateOf("")
     }
 
-    val selectedCalendarsId by mutableStateOf(
-        savedStateHandle.get<ArrayList<String>>("selectedCalendars") ?: ArrayList()
-    )
+    val selectedCalendarsId : MutableState<ArrayList<String>> by lazy {
+        mutableStateOf(ArrayList<String>())
+    }
 
     fun getCalendars(){
         calendars = mutableStateOf(getCalendarsUseCase(permissionsGranted.value))
     }
 
     fun getEvents(){
-        savedStateHandle["selectedCalendars"] = selectedCalendarsId
-        events = mutableStateOf(getEventsUseCase(selectedDate.value, selectedCalendarsId.toTypedArray()))
+        events = mutableStateOf(getEventsUseCase(selectedDate.value, selectedCalendarsId.value))
     }
 }

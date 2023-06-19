@@ -5,6 +5,5 @@ data class Calendar(
     val displayName: String,
     val color: String,
     val visible: Int,
-    val syncEvents: String,
-    val timeZone: String
+    val syncEvents: String
 )

@@ -21,8 +21,7 @@ class CalendarRepositoryImpl @Inject constructor (
                 CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
                 CalendarContract.Calendars.CALENDAR_COLOR,
                 CalendarContract.Calendars.VISIBLE,
-                CalendarContract.Calendars.SYNC_EVENTS,
-                CalendarContract.Calendars.CALENDAR_TIME_ZONE
+                CalendarContract.Calendars.SYNC_EVENTS
             )
 
             val PROJECTION_ID_INDEX: Int = 0
@@ -30,7 +29,6 @@ class CalendarRepositoryImpl @Inject constructor (
             val PROJECTION_CALENDAR_COLOR_INDEX: Int = 2
             val PROJECTION_VISIBLE_INDEX: Int = 3
             val PROJECTION_SYNC_EVENTS_INDEX: Int = 4
-            val PROJECTION_CALENDAR_TIME_ZONE_INDEX: Int = 4
 
             val selection = "${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL} " +
                     "= ${CalendarContract.Calendars.CAL_ACCESS_OWNER}"
@@ -48,8 +46,7 @@ class CalendarRepositoryImpl @Inject constructor (
                         cursor.getString(PROJECTION_CALENDAR_DISPLAY_NAME_INDEX),
                         cursor.getString(PROJECTION_CALENDAR_COLOR_INDEX),
                         cursor.getString(PROJECTION_VISIBLE_INDEX).toInt(),
-                        cursor.getString(PROJECTION_SYNC_EVENTS_INDEX),
-                        cursor.getString(PROJECTION_CALENDAR_TIME_ZONE_INDEX)
+                        cursor.getString(PROJECTION_SYNC_EVENTS_INDEX)
                     )
                     if(calendar.visible == 1) {
                         calendars.add(calendar)

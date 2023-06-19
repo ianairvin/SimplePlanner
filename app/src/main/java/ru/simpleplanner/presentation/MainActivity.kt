@@ -1,9 +1,6 @@
 package ru.simpleplanner.presentation
 
-import android.graphics.drawable.Icon
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -13,22 +10,27 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +45,8 @@ import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import ru.simpleplanner.presentation.ui.theme.SimplePlannerTheme
 import java.time.format.DateTimeFormatter
 
@@ -65,102 +69,108 @@ class MainActivity : ComponentActivity() {
     @ExperimentalPermissionsApi
     @Composable
     private fun eventActivity() {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxSize()
-        ) {
-            eventVM.getCalendars()
-            eventVM.getEvents()
-            settings()
-            pickDay()
-            val permissionsState = rememberMultiplePermissionsState(
-                permissions = listOf(
-                    android.Manifest.permission.READ_CALENDAR,
-                    android.Manifest.permission.WRITE_CALENDAR
-                )
+        eventVM.getCalendars()
+        eventVM.getEvents()
+        val permissionsState = rememberMultiplePermissionsState(
+            permissions = listOf(
+                android.Manifest.permission.READ_CALENDAR,
+                android.Manifest.permission.WRITE_CALENDAR
             )
-            if (permissionsState.allPermissionsGranted) {
-                eventVM.permissionsGranted.value = true
-               // listCalendars()
-                listEvents()
-            } else {
-                getPermissions(permissionsState)
-            }
+        )
+        var openAlertDialog = remember { mutableStateOf(false)}
+        if(openAlertDialog.value){
+            chooseCalendars(openAlertDialog)
         }
-    }
-
-    @ExperimentalMaterial3Api
-    @Composable
-    private fun settings(){
-        var openDialog = remember { mutableStateOf(false)}
-        Column() {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp)
-                    .height(36.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { openDialog.value = true })
-                {
-                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+        var scaffoldState = rememberBottomSheetScaffoldState(
+            bottomSheetState = SheetState(
+                skipPartiallyExpanded = true,
+                initialValue = SheetValue.Hidden
+            )
+        )
+        val scope = rememberCoroutineScope()
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize(),
+            topBar = { settingsTopBar(openAlertDialog) },
+            floatingActionButton = { addButton(scope, scaffoldState) },
+        ) { contentPadding ->
+            Column(modifier = Modifier.padding(contentPadding)) {
+                pickDay()
+                if (permissionsState.allPermissionsGranted) {
+                    eventVM.permissionsGranted.value = true
+                    listEvents()
+                } else {
+                    getPermissions(permissionsState)
                 }
             }
-            if(openDialog.value == true){
-                AlertDialog(onDismissRequest = { openDialog.value = false }) {
-                    Surface(
-                        modifier = Modifier
-                            .width(360.dp)
-                            .wrapContentHeight(),
-                        shape = MaterialTheme.shapes.large,
-                        tonalElevation = AlertDialogDefaults.TonalElevation
-                        ) {
-                        Column(modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.Start,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                                eventVM.calendars.value.forEach { item ->
-                                    var checked by remember {
-                                        mutableStateOf(eventVM.selectedCalendarsId.contains(item.id))
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(
-                                            checked = checked,
-                                            onCheckedChange = { checked_ ->
-                                                checked = checked_
-                                                if(checked == true) {
-                                                    eventVM.selectedCalendarsId.add(item.id)
-                                                } else {
-                                                    eventVM.selectedCalendarsId.remove(item.id)
-                                                }
-                                            }
-                                        )
-                                        Text(
-                                            modifier = Modifier.padding(start = 2.dp),
-                                            text = item.displayName
-                                        )
+        }
+        bottomSheet(scaffoldState)
+    }
+
+    @Composable
+    fun chooseCalendars(openAlertDialog: MutableState<Boolean>){
+        AlertDialog(onDismissRequest = { openAlertDialog.value = false }) {
+            Surface(
+                modifier = Modifier
+                    .width(360.dp)
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = AlertDialogDefaults.TonalElevation
+            ) {
+                Column(modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    eventVM.calendars.value.forEach { item ->
+                        var checked by remember {
+                            mutableStateOf(eventVM.selectedCalendarsId.value.contains(item.id))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { checked_ ->
+                                    checked = checked_
+                                    if(checked == true) {
+                                        eventVM.selectedCalendarsId.value.add(item.id)
+                                    } else {
+                                        eventVM.selectedCalendarsId.value.remove(item.id)
                                     }
                                 }
-                            Spacer(modifier = Modifier.height(24.dp))
-                            TextButton(
-                                onClick = {
-                                    openDialog.value = false
-                                    eventVM.getEvents()
-                                },
-                                modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text("Применить")
-                            }
+                            )
+                            Text(
+                                modifier = Modifier.padding(start = 2.dp),
+                                text = item.displayName
+                            )
                         }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    TextButton(
+                        onClick = {
+                            openAlertDialog.value = false
+                            eventVM.getEvents()
+                        },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Применить")
                     }
                 }
             }
         }
     }
 
-    @ExperimentalPermissionsApi
+    @Composable
+    private fun settingsTopBar(openAlertDialog: MutableState<Boolean>){
+        TopAppBar(
+            title = {},
+            actions = {
+                IconButton(onClick = { openAlertDialog.value = true })
+                {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                }
+            }
+        )
+    }
+
     @Composable
     private fun getPermissions(permissionsState: MultiplePermissionsState) {
         Column(
@@ -188,7 +198,7 @@ class MainActivity : ComponentActivity() {
         val dateDialogState = rememberMaterialDialogState()
         Row(
             modifier = Modifier
-                .padding(16.dp),
+                .padding(32.dp, 0.dp, 32.dp, 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
@@ -218,60 +228,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-  /*  @Composable
-    fun listCalendars() {
-        eventVM.getCalendars()
-        var expanded by remember { mutableStateOf(false) }
-        var selectedCalendar by remember { mutableStateOf("") }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp)
-        ) {
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = {
-                    expanded = !expanded
-                }
-            ) {
-                TextField(
-                    value = selectedCalendar,
-                    onValueChange = { selectedCalendar },
-                    readOnly = true,
-                    label = { Text("Выберите календарь") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(
-                            expanded = expanded
-                        )
-                    },
-                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                    modifier = Modifier.menuAnchor()
-                )
-                if (eventVM.calendars.value.isNotEmpty()) {
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = {
-                            expanded = false
-                        }
-                    ) {
-                        eventVM.calendars.value.forEach { calendarItem ->
-                            DropdownMenuItem(
-                                text = { Text(text = calendarItem.displayName) },
-                                onClick = {
-                                    selectedCalendar = calendarItem.displayName
-                                    eventVM.selectedCalendarName.value = calendarItem.displayName
-                                    eventVM.selectedCalendarId.value = calendarItem.id
-                                    eventVM.getEvents()
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    } */
-
     @Composable
     fun listEvents(){
         LazyColumn() {
@@ -280,7 +236,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .height(64.dp)
                         .fillMaxWidth()
-                        .padding(16.dp, 8.dp, 16.dp, 8.dp),
+                        .padding(32.dp, 8.dp, 32.dp, 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ){
@@ -305,5 +261,37 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } // добавить else
+    }
+
+    @Composable
+    fun addButton(scope: CoroutineScope, scaffoldState: BottomSheetScaffoldState){
+        FloatingActionButton(
+            modifier = Modifier.padding(all = 16.dp),
+            onClick = {
+                scope.launch {
+                    scaffoldState.bottomSheetState.expand()
+                }}
+        ) {
+            Icon(Icons.Filled.Add, "Add event button")
+        }
+    }
+
+    @Composable
+    fun bottomSheet(scaffoldState: BottomSheetScaffoldState){
+        BottomSheetScaffold(
+            scaffoldState = scaffoldState,
+            sheetShadowElevation = 32.dp,
+            sheetContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(500.dp)
+            ){
+                Text(text = "")
+            }
+        }) {
+
+        }
     }
 }
