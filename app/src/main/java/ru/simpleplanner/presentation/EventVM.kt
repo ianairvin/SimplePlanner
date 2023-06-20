@@ -1,10 +1,7 @@
 package ru.simpleplanner.presentation
 
-import android.util.Log
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import ru.simpleplanner.domain.entities.Calendar
 import ru.simpleplanner.domain.use_case.calendar_uc.GetCalendarsUseCase
@@ -13,7 +10,6 @@ import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ru.simpleplanner.domain.entities.Event
 import ru.simpleplanner.domain.use_case.event_uc.GetEventsUseCase
-import java.time.ZoneOffset
 
 @HiltViewModel
 class EventVM @Inject constructor(
@@ -46,5 +42,9 @@ class EventVM @Inject constructor(
 
     fun getEvents(){
         events = mutableStateOf(getEventsUseCase(selectedDate.value, selectedCalendarsId.value))
+    }
+
+    fun saveEvent(event: Event){
+
     }
 }
