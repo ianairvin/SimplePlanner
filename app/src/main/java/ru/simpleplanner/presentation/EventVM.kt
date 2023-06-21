@@ -28,13 +28,18 @@ class EventVM @Inject constructor(
         mutableStateOf(false)
     }
 
-    val selectedCalendarName: MutableState<String> by lazy {
-        mutableStateOf("")
-    }
-
     val selectedCalendarsId : MutableState<ArrayList<String>> by lazy {
         mutableStateOf(ArrayList<String>())
     }
+
+    val repeatRule = arrayOf(
+        arrayOf("Нет", ""),
+        arrayOf("Каждый день", "DAILY"),
+        arrayOf("Каждые два дня", "DAYLY/2"),
+        arrayOf("Каждую неделю", "WEEKLY"),
+        arrayOf("Каждые две недели", "WEEKLY/2"),
+        arrayOf("Каждый месяц", "MONTHLY")
+    )
 
     fun getCalendars(){
         calendars = mutableStateOf(getCalendarsUseCase(permissionsGranted.value))

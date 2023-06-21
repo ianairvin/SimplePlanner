@@ -11,5 +11,6 @@ data class Event(
     var end: LocalTime,
     var allDay: Int,
     var repeatRule: String?,
-    var description: String?
+    var description: String?,
+    var timeZone: String
 )
