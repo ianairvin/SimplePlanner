@@ -1,8 +1,12 @@
 package ru.simpleplanner.presentation
 
+import android.Manifest
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import ru.simpleplanner.domain.entities.Calendar
 import ru.simpleplanner.domain.use_case.calendar_uc.GetCalendarsUseCase
 import java.time.LocalDate
@@ -10,15 +14,17 @@ import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ru.simpleplanner.domain.entities.Event
 import ru.simpleplanner.domain.use_case.event_uc.GetEventsUseCase
+import ru.simpleplanner.domain.use_case.event_uc.InsertEventUseCase
 
 @HiltViewModel
 class EventVM @Inject constructor(
     private val getCalendarsUseCase: GetCalendarsUseCase,
-    private val getEventsUseCase: GetEventsUseCase
+    private val getEventsUseCase: GetEventsUseCase,
+    private val insertEventUseCase: InsertEventUseCase
 ): ViewModel() {
 
-    lateinit var calendars : MutableState<List<Calendar>>
-    lateinit var events : MutableState<List<Event>>
+    var calendars = mutableStateOf(emptyList<Calendar>())
+    var events = mutableStateOf(emptyList<Event>())
 
     val selectedDate: MutableState<LocalDate> by lazy {
         mutableStateOf(LocalDate.now())
@@ -29,7 +35,7 @@ class EventVM @Inject constructor(
     }
 
     val selectedCalendarsId : MutableState<ArrayList<String>> by lazy {
-        mutableStateOf(ArrayList<String>())
+        mutableStateOf(ArrayList())
     }
 
     val repeatRule = arrayOf(
@@ -50,6 +56,7 @@ class EventVM @Inject constructor(
     }
 
     fun saveEvent(event: Event){
-
+        insertEventUseCase(event)
+        getEvents()
     }
 }
