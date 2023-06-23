@@ -7,7 +7,7 @@ import javax.inject.Inject
 class InsertEventUseCase @Inject constructor(
     private val eventRepository : EventRepository,
 ) {
-    operator fun invoke(event: Event) : Boolean {
+    operator fun invoke(event: Event){
         return eventRepository.insertEvent(event)
     }
 }

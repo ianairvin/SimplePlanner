@@ -40,11 +40,11 @@ class EventVM @Inject constructor(
 
     val repeatRule = arrayOf(
         arrayOf("Нет", ""),
-        arrayOf("Каждый день", "DAILY"),
+        arrayOf("Каждый день", "DAILY/1"),
         arrayOf("Каждые два дня", "DAYLY/2"),
-        arrayOf("Каждую неделю", "WEEKLY"),
+        arrayOf("Каждую неделю", "WEEKLY/1"),
         arrayOf("Каждые две недели", "WEEKLY/2"),
-        arrayOf("Каждый месяц", "MONTHLY")
+        arrayOf("Каждый месяц", "MONTHLY/1")
     )
 
     fun getCalendars(){
