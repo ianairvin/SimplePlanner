@@ -15,7 +15,8 @@ import ru.simpleplanner.presentation.eventView.eventActivity
 @AndroidEntryPoint
 @OptIn(ExperimentalPermissionsApi::class)
 @ExperimentalMaterial3Api
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(
+) {
 
     private val eventVM: EventVM by viewModels()
 

@@ -7,10 +7,11 @@ data class Event(
     var calendarDisplayName: String,
     var title: String,
     var location: String?,
-    var start: Long,
-    var end: Long,
+    var start: LocalDateTime,
+    var end: LocalDateTime,
     var allDay: Int,
     var repeatRule: String?,
     var description: String?,
-    var timeZone: String
+    var timeZone: String,
+    var id: String
 )

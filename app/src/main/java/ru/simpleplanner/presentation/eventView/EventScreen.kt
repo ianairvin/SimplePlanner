@@ -3,6 +3,7 @@ package ru.simpleplanner.presentation.eventView
 import android.Manifest
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -10,23 +11,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -35,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,13 +48,9 @@ import kotlinx.coroutines.launch
 import ru.simpleplanner.domain.entities.Event
 import ru.simpleplanner.presentation.EventVM
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.Locale
-import java.util.TimeZone
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,11 +122,11 @@ private fun scaffold(
         modifier = Modifier
             .fillMaxSize(),
         topBar = { settingsTopBar(openAlertDialog) },
-        floatingActionButton = { addButton(scope, bottomSheetScaffoldState) },
+        floatingActionButton = { addButton(scope, bottomSheetScaffoldState, eventVM) },
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
             pickDay(eventVM)
-            listEvents(eventVM.events)
+            listEvents(eventVM.eventsList, scope, bottomSheetScaffoldState, eventVM)
         }
     }
     bottomSheet(scope, bottomSheetScaffoldState, eventVM)
@@ -146,6 +137,7 @@ private fun scaffold(
 private fun settingsTopBar(openAlertDialog: MutableState<Boolean>) {
     TopAppBar(
         title = {},
+        colors =  TopAppBarDefaults.topAppBarColors(Color.Transparent),
         actions = {
             IconButton(onClick = { openAlertDialog.value = true })
             {
@@ -199,41 +191,35 @@ fun pickDay(eventVM: EventVM) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun listEvents(events: MutableState<List<Event>>) {
+fun listEvents(
+    events: MutableState<List<Event>>,
+    scope: CoroutineScope,
+    scaffoldState: BottomSheetScaffoldState,
+    eventVM: EventVM
+) {
     if (events.value.isNotEmpty()) {
         LazyColumn() {
-            itemsIndexed(events.value) { _, item ->
-                val formattedTimeStart by remember {
-                    derivedStateOf {
-                        DateTimeFormatter
-                            .ofPattern("HH:mm")
-                            .format(
-                                Instant.ofEpochMilli(item.start)
-                                    .atZone(ZoneId.systemDefault()).toLocalDateTime()
-                            )
-                    }
-                }
-                val formattedTimeEnd by remember {
-                    derivedStateOf {
-                        DateTimeFormatter
-                            .ofPattern("HH:mm")
-                            .format(
-                                Instant.ofEpochMilli(item.end)
-                                    .atZone(ZoneId.systemDefault()).toLocalDateTime()
-                            )
-                    }
-                }
+            itemsIndexed(events.value.sortedBy { it.start }) { _, item ->
                 Row(
                     modifier = Modifier
                         .height(64.dp)
                         .fillMaxWidth()
-                        .padding(32.dp, 8.dp, 32.dp, 8.dp),
+                        .padding(32.dp, 8.dp, 32.dp, 8.dp)
+                        .clickable {
+                            eventVM.pickedEventForBottomSheet(item.id, item.calendarId, item.start, item.end)
+                            scope.launch {
+                                scaffoldState.bottomSheetState.expand()
+                            }
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = formattedTimeStart + "\n" + formattedTimeEnd,
+                        text = item.start.format(DateTimeFormatter.ofPattern("HH:mm"))
+                                + "\n" +
+                                item.end.format(DateTimeFormatter.ofPattern("HH:mm")),
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -259,7 +245,7 @@ fun listEvents(events: MutableState<List<Event>>) {
             horizontalAlignment = Alignment.CenterHorizontally
         ){
             Text(
-                text = "Событий на данную дату нет",
+                text = "Событий на выбранный день нет",
                 textAlign = TextAlign.Center
             )
         }
@@ -268,10 +254,15 @@ fun listEvents(events: MutableState<List<Event>>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun addButton(scope: CoroutineScope, scaffoldState: BottomSheetScaffoldState) {
+fun addButton(
+    scope: CoroutineScope,
+    scaffoldState: BottomSheetScaffoldState,
+    eventVM: EventVM
+) {
     FloatingActionButton(
         modifier = Modifier.padding(all = 16.dp),
         onClick = {
+            eventVM.newEventForBottomSheet()
             scope.launch {
                 scaffoldState.bottomSheetState.expand()
             }

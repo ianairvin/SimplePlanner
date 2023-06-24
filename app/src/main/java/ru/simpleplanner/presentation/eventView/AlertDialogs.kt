@@ -52,7 +52,7 @@ fun calendarsForList(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.Center
             ) {
-                eventVM.calendars.value.forEach { item ->
+                eventVM.calendarsList.value.forEach { item ->
                     var checked by remember {
                         mutableStateOf(eventVM.selectedCalendarsId.value.contains(item.id))
                     }
@@ -61,7 +61,7 @@ fun calendarsForList(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
                             checked = checked,
                             onCheckedChange = { checked_ ->
                                 checked = checked_
-                                if (checked == true) {
+                                if (checked) {
                                     eventVM.selectedCalendarsId.value.add(item.id)
                                 } else {
                                     eventVM.selectedCalendarsId.value.remove(item.id)
@@ -83,16 +83,16 @@ fun calendarsForList(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
 @Composable
 fun calendarForEvent(
     openAlertDialogCalendars: MutableState<Boolean>,
-    eventVM: EventVM,
-    calendarId: MutableState<String>,
-    calendarDisplayName: MutableState<String>
+    eventVM: EventVM
 ){
-    var calendarNameTemporal = remember { mutableStateOf(calendarDisplayName.value)}
-    var calendarIdTemporal = remember { mutableStateOf(calendarId.value)}
+    var calendarNameTemporal = remember {
+        mutableStateOf(eventVM.calendarDisplayNameForBottomSheet.value)}
+    var calendarIdTemporal = remember {
+        mutableStateOf(eventVM.calendarIdForBottomSheet.value)}
     AlertDialog(onDismissRequest = {
         openAlertDialogCalendars.value = false
-        calendarIdTemporal.value = calendarId.value
-        calendarNameTemporal.value = calendarDisplayName.value
+        calendarIdTemporal.value = eventVM.calendarIdForBottomSheet.value
+        calendarNameTemporal.value = eventVM.calendarDisplayNameForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -108,14 +108,14 @@ fun calendarForEvent(
             ) {
                 val (selectedOption, onOptionSelected) = remember {
                     mutableStateOf(
-                        if(calendarId.value == ""){
-                            eventVM.calendars.value[0]
+                        if(eventVM.calendarIdForBottomSheet.value == ""){
+                            eventVM.calendarsList.value[0]
                         } else {
-                            eventVM.calendars.value.find {
-                                it.id == calendarId.value
-                            } ?: eventVM.calendars.value[0]
+                            eventVM.calendarsList.value.find {
+                                it.id == eventVM.calendarIdForBottomSheet.value
+                            } ?: eventVM.calendarsList.value[0]
                     }) }
-                eventVM.calendars.value.forEach { item ->
+                eventVM.calendarsList.value.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.selectableGroup()) {
                         RadioButton(
@@ -136,10 +136,8 @@ fun calendarForEvent(
                 TextButton(
                     onClick = {
                         openAlertDialogCalendars.value = false
-                        calendarDisplayName.value = calendarNameTemporal.value
-                        calendarId.value = calendarIdTemporal.value
-                        Log.i("qqqqq", calendarId.value)
-                        Log.i("qqqqq", calendarDisplayName.value)
+                        eventVM.calendarDisplayNameForBottomSheet.value = calendarNameTemporal.value
+                        eventVM.calendarIdForBottomSheet.value = calendarIdTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
@@ -154,12 +152,13 @@ fun calendarForEvent(
 @Composable
 fun descriptionForEvent(
     openAlertDialogDescription: MutableState<Boolean>,
-    description: MutableState<String>
+    eventVM: EventVM
 ){
-    val descriptionTemporal = remember { mutableStateOf(description.value) }
+    val descriptionTemporal = remember {
+        mutableStateOf(eventVM.descriptionForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialogDescription.value = false
-        descriptionTemporal.value= description.value
+        descriptionTemporal.value = eventVM.descriptionForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -188,7 +187,7 @@ fun descriptionForEvent(
                 TextButton(
                     onClick = {
                         openAlertDialogDescription.value = false
-                        description.value = descriptionTemporal.value
+                        eventVM.descriptionForBottomSheet.value = descriptionTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
@@ -203,13 +202,13 @@ fun descriptionForEvent(
 @Composable
 fun repeatRuleForEvent(
     openAlertDialogCalendars: MutableState<Boolean>,
-    eventVM: EventVM,
-    repeatRule: MutableState<Array<String>>
+    eventVM: EventVM
 ){
-    var repeatRuleTemporal = remember { mutableStateOf(repeatRule.value) }
+    var repeatRuleTemporal = remember {
+        mutableStateOf(eventVM.repeatRuleForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialogCalendars.value = false
-        repeatRuleTemporal.value = repeatRule.value
+        repeatRuleTemporal.value = eventVM.repeatRuleForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -246,7 +245,7 @@ fun repeatRuleForEvent(
                 TextButton(
                     onClick = {
                         openAlertDialogCalendars.value = false
-                        repeatRule.value = repeatRuleTemporal.value
+                        eventVM.repeatRuleForBottomSheet.value = repeatRuleTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
@@ -261,12 +260,13 @@ fun repeatRuleForEvent(
 @Composable
 fun locationForEvent(
     openAlertDialogDescription: MutableState<Boolean>,
-    location: MutableState<String>
+    eventVM: EventVM
 ){
-    val locationTemporal = remember { mutableStateOf(location.value) }
+    val locationTemporal = remember {
+        mutableStateOf(eventVM.locationForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialogDescription.value = false
-        locationTemporal.value = location.value
+        locationTemporal.value = eventVM.locationForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -295,7 +295,7 @@ fun locationForEvent(
                 TextButton(
                     onClick = {
                         openAlertDialogDescription.value = false
-                        location.value = locationTemporal.value
+                        eventVM.locationForBottomSheet.value = locationTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
