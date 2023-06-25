@@ -9,6 +9,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ru.simpleplanner.domain.entities.Event
+import ru.simpleplanner.domain.use_case.event_uc.DeleteEventUseCase
 import ru.simpleplanner.domain.use_case.event_uc.GetEventsUseCase
 import ru.simpleplanner.domain.use_case.event_uc.GetOneEventUseCase
 import ru.simpleplanner.domain.use_case.event_uc.InsertEventUseCase
@@ -19,6 +20,7 @@ import java.util.TimeZone
 
 @HiltViewModel
 class EventVM @Inject constructor(
+    private val deleteEventUseCase: DeleteEventUseCase,
     private val getCalendarsUseCase: GetCalendarsUseCase,
     private val getEventsUseCase: GetEventsUseCase,
     private val getOneEventUseCase: GetOneEventUseCase,
@@ -49,7 +51,8 @@ class EventVM @Inject constructor(
 
 
     var calendarsList = mutableStateOf(getCalendarsUseCase(permissionsGranted.value))
-    var eventsList = mutableStateOf(getEventsUseCase(selectedDate.value, selectedCalendarsId.value))
+    var eventsList = mutableStateOf(
+        getEventsUseCase(selectedDate.value, selectedCalendarsId.value))
 
     val calendarIdForBottomSheet =  mutableStateOf("")
     val calendarDisplayNameForBottomSheet = mutableStateOf("")
@@ -89,7 +92,7 @@ class EventVM @Inject constructor(
         allDayForBottomSheet.value = 0
         repeatRuleForBottomSheet.value = arrayOf("Нет", "")
         descriptionForBottomSheet.value = ""
-        pickedDateForBottomSheet.value = LocalDate.now()
+        pickedDateForBottomSheet.value = selectedDate.value
         updaterBottomSheet.value = false
     }
 
@@ -133,13 +136,20 @@ class EventVM @Inject constructor(
             repeatRuleForBottomSheet.value[1],
             descriptionForBottomSheet.value,
             TimeZone.getDefault().toString(),
-            idEventForBottomSheet.value
+            idEventForBottomSheet.value,
+            null,
+            null
         )
         if(updaterBottomSheet.value){
             updateEventUseCase(event)
         } else {
             insertEventUseCase(event)
         }
+        getEvents()
+    }
+
+    fun deleteEvent(){
+        deleteEventUseCase(idEventForBottomSheet.value)
         getEvents()
     }
 }

@@ -80,6 +80,8 @@ dependencies {
     implementation 'javax.inject:javax.inject:1'
     implementation 'com.google.dagger:hilt-android:2.46.1'
     kapt 'com.google.dagger:hilt-compiler:2.46.1'
+
+    implementation "com.google.accompanist:accompanist-systemuicontroller:0.30.1"
 }
 
 kapt {

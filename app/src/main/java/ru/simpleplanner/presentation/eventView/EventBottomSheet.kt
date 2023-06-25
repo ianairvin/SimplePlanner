@@ -1,8 +1,8 @@
 package ru.simpleplanner.presentation.eventView
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -10,9 +10,14 @@ import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.ModalBottomSheet
+
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,28 +26,27 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.MaterialDialogState
+import com.vanpra.composematerialdialogs.datetime.date.DatePickerDefaults
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
+import com.vanpra.composematerialdialogs.datetime.time.TimePickerDefaults
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import ru.simpleplanner.domain.entities.Event
 import ru.simpleplanner.presentation.EventVM
-import java.time.LocalDate
-import java.time.LocalTime
+import ru.simpleplanner.presentation.ui.theme.*
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +62,9 @@ fun bottomSheet(
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetShadowElevation = 32.dp,
+        modifier = Modifier.background(Color.Green),
+        containerColor = colorScheme.background,
+        sheetShadowElevation = 0.dp,
         sheetContent = { bottomSheetContent(
             scope,
             scaffoldState,
@@ -68,7 +74,7 @@ fun bottomSheet(
             openAlertDialogRepeatRule,
             openAlertDialogLocation
         ) }
-    ) {}
+    ){}
 
     if(openAlertDialogCalendars.value) {
         calendarForEvent(openAlertDialogCalendars, eventVM)
@@ -195,13 +201,14 @@ fun dateAndTimeEvent(
         ){
             Text(
                 text = "Дата",
-                modifier = Modifier.height(20.dp)
+                modifier = Modifier.height(20.dp),
+                fontWeight = FontWeight.W700
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Box(
                 modifier = Modifier
                     .clip(shape = RoundedCornerShape(16.dp))
-                    .background(Color.Gray)
+                    .background(colorScheme.outlineVariant)
                     .height(64.dp)
                     .fillMaxWidth()
                     .clickable { dateDialogState.show() },
@@ -222,40 +229,35 @@ fun dateAndTimeEvent(
         ){
             Text(
                 text = "Начало",
-                modifier = Modifier.height(20.dp)
+                modifier = Modifier.height(20.dp),
+                fontWeight = FontWeight.W700
             )
             Spacer(modifier = Modifier.padding(4.dp))
-            if(eventVM.allDayForBottomSheet.value == 0) {
-                Box(
-                    modifier = Modifier
+            Box(
+                modifier = if(eventVM.allDayForBottomSheet.value == 0) {
+                    Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
-                        .background(Color.Gray)
+                        .background(colorScheme.outlineVariant)
                         .height(64.dp)
                         .fillMaxWidth()
-                        .clickable { startTimeDialogState.show() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = formattedTimeStart,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                Box(
-                    modifier = Modifier
+                        .clickable { startTimeDialogState.show() }
+                } else {
+                    Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
-                        .background(Color.DarkGray)
+                        .background(colorScheme.outlineVariant)
                         .height(64.dp)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = formattedTimeStart,
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray
-                    )
-                }
+                        .fillMaxWidth()
+                       },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if(eventVM.allDayForBottomSheet.value == 0) formattedTimeStart else "-",
+                    textAlign = TextAlign.Center,
+                    color = if(eventVM.allDayForBottomSheet.value == 0)
+                        colorScheme.onBackground else colorScheme.outline
+                )
             }
+
         }
 
         Spacer(modifier = Modifier.padding(8.dp))
@@ -266,39 +268,33 @@ fun dateAndTimeEvent(
         ){
             Text(
                 text = "Конец",
-                modifier = Modifier.height(20.dp)
+                modifier = Modifier.height(20.dp),
+                fontWeight = FontWeight.W700
             )
             Spacer(modifier = Modifier.padding(4.dp))
-            if(eventVM.allDayForBottomSheet.value == 0) {
-                Box(
-                    modifier = Modifier
+            Box(
+                modifier = if(eventVM.allDayForBottomSheet.value == 0) {
+                    Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
-                        .background(Color.Gray)
+                        .background(colorScheme.outlineVariant)
                         .height(64.dp)
                         .fillMaxWidth()
-                        .clickable { endTimeDialogState.show() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = formattedTimeEnd,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                Box(
-                    modifier = Modifier
+                        .clickable { endTimeDialogState.show() }
+                } else {
+                    Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
-                        .background(Color.DarkGray)
+                        .background(colorScheme.outlineVariant)
                         .height(64.dp)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = formattedTimeEnd,
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray
-                    )
-                }
+                        .fillMaxWidth()
+                },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if(eventVM.allDayForBottomSheet.value == 0) formattedTimeEnd else "-",
+                    textAlign = TextAlign.Center,
+                    color = if(eventVM.allDayForBottomSheet.value == 0)
+                        colorScheme.onBackground else colorScheme.outline
+                )
             }
         }
     }
@@ -312,6 +308,7 @@ fun pickDate(
     var pickedDateTemporal = eventVM.pickedDateForBottomSheet.value
     MaterialDialog(
         dialogState = dateDialogState,
+        backgroundColor = colorScheme.background,
         buttons = {
             positiveButton(text = "ОК") {
                 eventVM.pickedDateForBottomSheet.value = pickedDateTemporal
@@ -323,7 +320,15 @@ fun pickDate(
         datepicker(
             initialDate = pickedDateTemporal,
             title = "",
-            locale = Locale("ru")
+            locale = Locale("ru"),
+            colors = DatePickerDefaults.colors(
+                dateActiveBackgroundColor = colorScheme.primary,
+                dateInactiveTextColor = colorScheme.onBackground,
+                headerBackgroundColor = colorScheme.primary,
+                headerTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
+                calendarHeaderTextColor = colorScheme.onBackground,
+                dateActiveTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
+            )
         ) {
            pickedDateTemporal = it
         }
@@ -338,6 +343,7 @@ fun pickStartTime(
     var pickedTimeTemporal = eventVM.startForBottomSheet.value
     MaterialDialog(
         dialogState = startTimeDialogState,
+        backgroundColor = colorScheme.background,
         buttons = {
             positiveButton(text = "ОК") {
                 eventVM.startForBottomSheet.value = pickedTimeTemporal
@@ -353,7 +359,17 @@ fun pickStartTime(
             timepicker(
                 initialTime = eventVM.startForBottomSheet.value,
                 title = "",
-                is24HourClock = true
+                is24HourClock = true,
+                colors = TimePickerDefaults.colors(
+                    headerTextColor = colorScheme.onPrimary,
+                    inactivePeriodBackground = colorScheme.surface,
+                    inactiveBackgroundColor = colorScheme.surface,
+                    activeBackgroundColor = colorScheme.primary,
+                    activeTextColor = colorScheme.onBackground,
+                    inactiveTextColor = colorScheme.onBackground,
+                    selectorColor = colorScheme.primaryContainer,
+                    selectorTextColor = colorScheme.onBackground
+                )
             ) {
                 pickedTimeTemporal = it
             }
@@ -369,6 +385,7 @@ fun pickEndTime(
     var pickedTimeTemporal = eventVM.endForBottomSheet.value
     MaterialDialog(
         dialogState = endTimeDialogState,
+        backgroundColor = colorScheme.background,
         buttons = {
             positiveButton(text = "ОК") {
                 eventVM.endForBottomSheet.value = pickedTimeTemporal
@@ -384,7 +401,17 @@ fun pickEndTime(
             timepicker(
                 initialTime = eventVM.endForBottomSheet.value,
                 title = "",
-                is24HourClock = true
+                is24HourClock = true,
+                colors = TimePickerDefaults.colors(
+                    headerTextColor = colorScheme.onPrimary,
+                    inactivePeriodBackground = colorScheme.surface,
+                    inactiveBackgroundColor = colorScheme.surface,
+                    activeBackgroundColor = colorScheme.primary,
+                    activeTextColor = colorScheme.onBackground,
+                    inactiveTextColor = colorScheme.onBackground,
+                    selectorColor = colorScheme.primaryContainer,
+                    selectorTextColor = colorScheme.onBackground
+                )
             ) {
                 pickedTimeTemporal = it
             }
@@ -533,24 +560,66 @@ fun button(
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM
 ) {
-    Row(modifier = Modifier.fillMaxWidth(),
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(16.dp, 0.dp, 16.dp, 0.dp),
         horizontalArrangement = Arrangement.Center
     ) {
-        Button(
-            modifier = Modifier
-                .height(48.dp)
-                .width(200.dp),
-            shape = RoundedCornerShape(36.dp),
-            onClick = {
-                eventVM.saveOrUpdateEvent()
-                scope.launch {
-                    scaffoldState.bottomSheetState.hide()
+        if(eventVM.updaterBottomSheet.value) {
+            Button(
+                modifier = Modifier
+                    .height(48.dp)
+                    .weight(1f),
+                shape = RoundedCornerShape(36.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.errorContainer,
+                    contentColor = colorScheme.onErrorContainer
+                ),
+                onClick = {
+                    eventVM.deleteEvent()
+                    scope.launch {
+                        scaffoldState.bottomSheetState.hide()
+                    }
                 }
+            ) {
+                Text(text = "Удалить")
             }
-        ){
-            if(eventVM.updaterBottomSheet.value) {
+            Spacer(modifier = Modifier.padding(8.dp))
+            Button(
+                modifier = Modifier
+                    .height(48.dp)
+                    .weight(1f),
+                shape = RoundedCornerShape(36.dp),
+                onClick = {
+                    eventVM.saveOrUpdateEvent()
+                    scope.launch {
+                        scaffoldState.bottomSheetState.hide()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.primary,
+                    contentColor = md_theme_light_onPrimary
+                )
+            ) {
                 Text(text = "Изменить")
-            } else {
+            }
+        } else {
+            Button(
+                modifier = Modifier
+                    .height(48.dp)
+                    .width(200.dp),
+                shape = RoundedCornerShape(36.dp),
+                onClick = {
+                    eventVM.saveOrUpdateEvent()
+                    scope.launch {
+                        scaffoldState.bottomSheetState.hide()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.primary,
+                    contentColor = md_theme_light_onPrimary
+                )
+            ) {
                 Text(text = "Добавить")
             }
         }

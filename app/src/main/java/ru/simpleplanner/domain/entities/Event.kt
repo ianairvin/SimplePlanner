@@ -13,5 +13,7 @@ data class Event(
     var repeatRule: String?,
     var description: String?,
     var timeZone: String,
-    var id: String
+    var id: String,
+    val colorCalendar: Int?,
+    val colorEvent: Int?
 )

@@ -6,6 +6,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.provider.CalendarContract
 import android.util.Log
+import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
 import ru.simpleplanner.domain.entities.Calendar
 import ru.simpleplanner.domain.entities.Event
@@ -25,6 +26,11 @@ class EventRepositoryImpl @Inject constructor (
 
     val appContext = app
 
+    override fun deleteEvent(id: String) {
+        val deleteUri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id.toLong())
+        appContext.contentResolver.delete(deleteUri, null, null)
+    }
+
     override fun getEvents(date: LocalDate, calendarsId: ArrayList<String>): List<Event> {
         if(calendarsId.isNotEmpty()) {
             val events = arrayListOf<Event>()
@@ -40,10 +46,11 @@ class EventRepositoryImpl @Inject constructor (
                 CalendarContract.Instances.BEGIN,
                 CalendarContract.Instances.END,
                 CalendarContract.Instances.ALL_DAY,
-                CalendarContract.Instances.RRULE,
                 CalendarContract.Instances.DESCRIPTION,
                 CalendarContract.Instances.EVENT_TIMEZONE,
-                CalendarContract.Instances.EVENT_ID
+                CalendarContract.Instances.EVENT_ID,
+                CalendarContract.Instances.CALENDAR_COLOR,
+                CalendarContract.Instances.EVENT_COLOR
             )
             val PROJECTION_ID_INDEX = 0
             val PROJECTION_CALENDAR_NAME_INDEX = 1
@@ -52,10 +59,12 @@ class EventRepositoryImpl @Inject constructor (
             val PROJECTION_BEGIN_INDEX = 4
             val PROJECTION_END_INDEX = 5
             val PROJECTION_ALL_DAY_INDEX = 6
-            val PROJECTION_RRULE_INDEX = 7
-            val PROJECTION_DESCRIPTION_INDEX = 8
-            val PROJECTION_TIME_ZONE_INDEX = 9
-            val PROJECTION_EVENT_ID_INDEX = 10
+            val PROJECTION_DESCRIPTION_INDEX = 7
+            val PROJECTION_TIME_ZONE_INDEX = 8
+            val PROJECTION_EVENT_ID_INDEX = 9
+            val PROJECTION_CALENDAR_COLOR_INDEX = 10
+            val PROJECTION_EVENT_COLOR_INDEX = 11
+
 
             val selection1 = "${CalendarContract.Instances.BEGIN} >= $startDay" +
                     " AND ${CalendarContract.Instances.BEGIN} <= $endDay" +
@@ -82,6 +91,7 @@ class EventRepositoryImpl @Inject constructor (
                 selectionArgs,
                 "${CalendarContract.Instances.DTSTART} " + "ASC"
             )
+
             if (cursor != null) {
                 while (cursor.moveToNext()) {
                     val event = Event(
@@ -94,10 +104,12 @@ class EventRepositoryImpl @Inject constructor (
                         Instant.ofEpochMilli(cursor.getString(PROJECTION_END_INDEX).toLong())
                             .atZone(ZoneId.systemDefault()).toLocalDateTime(),
                         cursor.getString(PROJECTION_ALL_DAY_INDEX).toInt(),
-                        cursor.getString(PROJECTION_RRULE_INDEX),
+                        null,
                         cursor.getString(PROJECTION_DESCRIPTION_INDEX),
                         cursor.getString(PROJECTION_TIME_ZONE_INDEX),
-                        cursor.getString(PROJECTION_EVENT_ID_INDEX)
+                        cursor.getString(PROJECTION_EVENT_ID_INDEX),
+                        cursor.getInt(PROJECTION_CALENDAR_COLOR_INDEX),
+                        cursor.getIntOrNull(PROJECTION_EVENT_COLOR_INDEX)
                     )
                     events.add(event)
                 }
@@ -177,7 +189,6 @@ class EventRepositoryImpl @Inject constructor (
                     }
                 }
             }
-
             event = Event(
                 cursor.getString(PROJECTION_ID_INDEX),
                 cursor.getString(PROJECTION_CALENDAR_NAME_INDEX),
@@ -191,14 +202,16 @@ class EventRepositoryImpl @Inject constructor (
                 ruleForEvent,
                 cursor.getString(PROJECTION_DESCRIPTION_INDEX),
                 cursor.getString(PROJECTION_TIME_ZONE_INDEX),
-                cursor.getString(PROJECTION_EVENT_ID_INDEX)
+                cursor.getString(PROJECTION_EVENT_ID_INDEX),
+                null,
+                null
             )
             cursor.close()
             return event
         } else {
             return Event("", "", "", "",
                 LocalDateTime.now(), LocalDateTime.now(), 0, "", "",
-            "", "")
+            "", "", null, null)
         }
     }
 
@@ -277,7 +290,6 @@ class EventRepositoryImpl @Inject constructor (
         }
         val updateUri = ContentUris.withAppendedId(
             CalendarContract.Events.CONTENT_URI, event.id.toLong())
-        val rows = appContext.contentResolver.update(updateUri, values, null, null)
-        Log.i("qqqqq", "Rows updated: $rows")
+        appContext.contentResolver.update(updateUri, values, null, null)
     }
 }
