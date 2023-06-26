@@ -200,10 +200,17 @@ fun pickDay(eventVM: EventVM) {
             Text(text = "Выбрать дату")
         }
     }
+    var pickedDateTemporal = eventVM.selectedDate.value
     MaterialDialog(
         dialogState = dateDialogState,
         backgroundColor = colorScheme.background,
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(24.dp),
+        buttons = {
+            positiveButton(text = "ОК") {
+                eventVM.selectedDate.value = pickedDateTemporal
+            }
+            negativeButton(text = "Отмена")
+        },
     ) {
         datepicker(
             initialDate = eventVM.selectedDate.value,
@@ -219,7 +226,7 @@ fun pickDay(eventVM: EventVM) {
             )
 
         ) {
-            eventVM.selectedDate.value = it
+            pickedDateTemporal = it
         }
     }
 }
@@ -255,15 +262,15 @@ fun listEvents(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        color = if(item.end < LocalDateTime.now()) {
-                            if (isSystemInDarkTheme()) neutral40 else neutral60
-                        } else {
-                            colorScheme.onBackground },
                         text = if (item.allDay == 1) {
                             "Весь" + "\n" + "день"
                         } else {
                             item.start.format(DateTimeFormatter.ofPattern("HH:mm")) + "\n" + item.end.format(DateTimeFormatter.ofPattern("HH:mm"))
                         },
+                        color = if(item.end < LocalDateTime.now() && item.allDay == 0) {
+                            if (isSystemInDarkTheme()) neutral40 else neutral60
+                        } else {
+                            colorScheme.onBackground },
                         modifier = Modifier.weight(1f),
                         fontSize = 14.sp
                     )

@@ -66,10 +66,11 @@ class EventRepositoryImpl @Inject constructor (
             val PROJECTION_EVENT_COLOR_INDEX = 11
 
 
-            val selection1 = "${CalendarContract.Instances.BEGIN} >= $startDay" +
-                    " AND ${CalendarContract.Instances.BEGIN} <= $endDay" +
+            val selection1 = "((${CalendarContract.Instances.BEGIN} >= $startDay" +
+                    " AND ${CalendarContract.Instances.BEGIN} <= $endDay)" +
+                    " OR (${CalendarContract.Instances.ALL_DAY} = 1" +
+                    " AND ${CalendarContract.Instances.BEGIN} = $startDay)) " +
                     " AND ("
-
             var selection2 = ""
             val size = calendarsId.size
             for (i in 1..size - 1) {
