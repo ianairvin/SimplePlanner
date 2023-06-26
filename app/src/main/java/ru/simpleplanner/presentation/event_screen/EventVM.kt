@@ -1,4 +1,4 @@
-package ru.simpleplanner.presentation
+package ru.simpleplanner.presentation.event_screen
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf

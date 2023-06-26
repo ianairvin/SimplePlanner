@@ -1,36 +1,44 @@
-package ru.simpleplanner.presentation.eventView
+package ru.simpleplanner.presentation.event_screen
 
+import ru.simpleplanner.R
 import android.Manifest
 import android.graphics.Color.parseColor
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemColors
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -38,34 +46,37 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.ColorUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.android.material.bottomnavigation.BottomNavigationItemView
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.vanpra.composematerialdialogs.MaterialDialog
-import com.vanpra.composematerialdialogs.datetime.date.DatePickerColors
 import com.vanpra.composematerialdialogs.datetime.date.DatePickerDefaults
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ru.simpleplanner.domain.entities.Event
-import ru.simpleplanner.presentation.EventVM
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
 import ru.simpleplanner.presentation.ui.theme.neutral40
 import ru.simpleplanner.presentation.ui.theme.neutral60
+import ru.simpleplanner.presentation.ui.theme.surface
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -74,7 +85,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalPermissionsApi
 @Composable
-fun eventActivity(eventVM: EventVM) {
+fun eventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () -> Unit) {
     val permissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.READ_CALENDAR,
@@ -98,7 +109,14 @@ fun eventActivity(eventVM: EventVM) {
         eventVM.permissionsGranted.value = true
         eventVM.getCalendars()
         eventVM.getEvents()
-        scaffold(openAlertDialog, scope, bottomSheetScaffoldState, eventVM)
+        scaffold(
+            openAlertDialog,
+            scope,
+            bottomSheetScaffoldState,
+            eventVM,
+            onClickTask,
+            onClickTimer
+        )
     } else {
         getPermissions(permissionsState)
     }
@@ -136,7 +154,9 @@ private fun scaffold(
     openAlertDialog: MutableState<Boolean>,
     scope: CoroutineScope,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
-    eventVM: EventVM
+    eventVM: EventVM,
+    onClickTask: () -> Unit,
+    onClickTimer: () -> Unit
 ) {
     Scaffold(
         modifier = if (bottomSheetScaffoldState.bottomSheetState.isVisible){
@@ -148,6 +168,7 @@ private fun scaffold(
         },
         topBar = { settingsTopBar(openAlertDialog) },
         floatingActionButton = { addButton(scope, bottomSheetScaffoldState, eventVM) },
+        bottomBar = { navigationBar(onClickTask, onClickTimer)},
         containerColor = colorScheme.background
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
@@ -267,7 +288,12 @@ fun listEvents(
                         } else {
                             item.start.format(DateTimeFormatter.ofPattern("HH:mm")) + "\n" + item.end.format(DateTimeFormatter.ofPattern("HH:mm"))
                         },
-                        color = if(item.end < LocalDateTime.now() && item.allDay == 0) {
+                        color = if(
+                            (item.end.toLocalDate() < LocalDate.now()) ||
+                            (item.end.toLocalDate() == LocalDate.now()
+                                    && item.end < LocalDateTime.now()
+                                    && item.allDay == 0)
+                        ) {
                             if (isSystemInDarkTheme()) neutral40 else neutral60
                         } else {
                             colorScheme.onBackground },
@@ -314,7 +340,7 @@ fun listEvents(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            color = if(item.end < LocalDateTime.now()) {
+                            color = if(item.end < LocalDateTime.now() && item.allDay == 0) {
                                 if (isSystemInDarkTheme()) neutral40 else neutral60
                             } else {
                                 colorScheme.onBackground },
@@ -347,7 +373,7 @@ fun addButton(
     eventVM: EventVM
 ) {
     FloatingActionButton(
-        modifier = Modifier.padding(all = 16.dp),
+        modifier = Modifier.padding(0.dp, 0.dp, 16.dp, 8.dp),
         onClick = {
             eventVM.newEventForBottomSheet()
             scope.launch {
@@ -360,6 +386,75 @@ fun addButton(
         Icon(
             Icons.Filled.Add,
             "Add event button"
+        )
+    }
+}
+
+
+@Composable
+fun navigationBar(onClickTask: () -> Unit, onClickTimer: () -> Unit) {
+    var selectedItem by remember { mutableStateOf("calendar") }
+    Divider(
+        color = colorScheme.surfaceVariant,
+        thickness  = 1.dp,
+        modifier = Modifier.padding(32.dp, 0.dp, 32.dp, 0.dp)
+    )
+    NavigationBar(
+        modifier = Modifier.padding(48.dp, 0.dp, 48.dp, 16.dp),
+        containerColor = Color.Transparent
+    ) {
+        NavigationBarItem(
+            selected = selectedItem == "calendar",
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.date_range),
+                    contentDescription = null
+                )
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = colorScheme.primary,
+                unselectedIconColor = colorScheme.onBackground,
+                indicatorColor = colorScheme.background
+            ),
+            onClick = {
+                selectedItem = "calendar"
+            }
+        )
+        NavigationBarItem(
+            selected = selectedItem == "checklist",
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.checklist),
+                    contentDescription = null
+                )
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = colorScheme.primary,
+                unselectedIconColor = colorScheme.onBackground,
+                indicatorColor = colorScheme.background
+            ),
+            onClick = {
+                selectedItem = "checklist"
+                onClickTask()
+            }
+        )
+        NavigationBarItem(
+            selected = selectedItem == "timer",
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.timer),
+                    contentDescription = null
+                )
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = colorScheme.primary,
+                unselectedIconColor = colorScheme.onBackground,
+                indicatorColor = colorScheme.background
+            ),
+            onClick = {
+                selectedItem = "timer"
+                onClickTimer
+            }
         )
     }
 }

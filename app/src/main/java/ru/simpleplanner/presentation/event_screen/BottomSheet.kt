@@ -1,4 +1,4 @@
-package ru.simpleplanner.presentation.eventView
+package ru.simpleplanner.presentation.event_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,10 +14,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.ModalBottomSheet
 
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +41,6 @@ import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import ru.simpleplanner.presentation.EventVM
 import ru.simpleplanner.presentation.ui.theme.*
 import java.time.format.DateTimeFormatter
 import java.util.Locale

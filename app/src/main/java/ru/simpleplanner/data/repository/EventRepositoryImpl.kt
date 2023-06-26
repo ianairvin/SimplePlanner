@@ -3,20 +3,18 @@ package ru.simpleplanner.data.repository
 import android.app.Application
 import android.content.ContentUris
 import android.content.ContentValues
-import android.database.Cursor
 import android.provider.CalendarContract
 import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
-import ru.simpleplanner.domain.entities.Calendar
 import ru.simpleplanner.domain.entities.Event
-import ru.simpleplanner.domain.repository.CalendarRepository
 import ru.simpleplanner.domain.repository.EventRepository
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.TimeZone
 import javax.inject.Inject
 
@@ -218,6 +216,18 @@ class EventRepositoryImpl @Inject constructor (
 
     override fun insertEvent(event: Event) {
         var values: ContentValues
+        var start = event.start.atZone(ZoneOffset.systemDefault())
+            .toInstant().toEpochMilli()
+        var end = event.end.atZone(ZoneOffset.systemDefault())
+            .toInstant().toEpochMilli()
+
+        if(event.allDay == 1){
+            val hoursDifference = (TimeZone.getTimeZone(ZoneId.systemDefault()).getOffset(start)
+                    - TimeZone.getTimeZone(ZoneId.of("UTC")).getOffset(start))
+            start += hoursDifference
+            end += hoursDifference
+        }
+
         if (event.repeatRule != "") {
             val rRuleAttribute = event.repeatRule?.split("/")
             val rRule = "FREQ=" + rRuleAttribute!![0] + ";INTERVAL=" + rRuleAttribute[1]
@@ -228,8 +238,7 @@ class EventRepositoryImpl @Inject constructor (
                 put(CalendarContract.Events.CALENDAR_ID, event.calendarId)
                 put(CalendarContract.Events.TITLE, event.title)
                 put(CalendarContract.Events.EVENT_LOCATION, event.location)
-                put(CalendarContract.Events.DTSTART, event.start.atZone(ZoneOffset.systemDefault())
-                    .toInstant().toEpochMilli())
+                put(CalendarContract.Events.DTSTART, start)
                 put(CalendarContract.Events.DURATION, duration)
                 put(CalendarContract.Events.ALL_DAY, event.allDay)
                 put(CalendarContract.Events.RRULE, rRule)
@@ -241,16 +250,15 @@ class EventRepositoryImpl @Inject constructor (
                 put(CalendarContract.Events.CALENDAR_ID, event.calendarId)
                 put(CalendarContract.Events.TITLE, event.title)
                 put(CalendarContract.Events.EVENT_LOCATION, event.location)
-                put(CalendarContract.Events.DTSTART, event.start.atZone(ZoneOffset.systemDefault())
-                    .toInstant().toEpochMilli())
-                put(CalendarContract.Events.DTEND, event.end.atZone(ZoneOffset.systemDefault())
-                    .toInstant().toEpochMilli())
+                put(CalendarContract.Events.DTSTART, start)
+                put(CalendarContract.Events.DTEND, end)
                 put(CalendarContract.Events.ALL_DAY, event.allDay)
                 put(CalendarContract.Events.RRULE, "")
                 put(CalendarContract.Events.DESCRIPTION, event.description)
                 put(CalendarContract.Events.EVENT_TIMEZONE, event.timeZone)
             }
         }
+
         appContext.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
     }
 
