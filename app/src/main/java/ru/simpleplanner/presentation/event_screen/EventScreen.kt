@@ -176,7 +176,7 @@ private fun scaffold(
             listEvents(eventVM.eventsList, scope, bottomSheetScaffoldState, eventVM)
         }
     }
-    bottomSheet(scope, bottomSheetScaffoldState, eventVM)
+    bottomSheetEvent(scope, bottomSheetScaffoldState, eventVM)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -340,7 +340,12 @@ fun listEvents(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            color = if(item.end < LocalDateTime.now() && item.allDay == 0) {
+                            color =if(
+                                (item.end.toLocalDate() < LocalDate.now()) ||
+                                (item.end.toLocalDate() == LocalDate.now()
+                                        && item.end < LocalDateTime.now()
+                                        && item.allDay == 0)
+                            ) {
                                 if (isSystemInDarkTheme()) neutral40 else neutral60
                             } else {
                                 colorScheme.onBackground },
@@ -453,7 +458,7 @@ fun navigationBar(onClickTask: () -> Unit, onClickTimer: () -> Unit) {
             ),
             onClick = {
                 selectedItem = "timer"
-                onClickTimer
+                onClickTimer()
             }
         )
     }

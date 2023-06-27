@@ -5,7 +5,7 @@ import ru.simpleplanner.domain.repository.EventRepository
 import javax.inject.Inject
 
 class UpdateEventUseCase @Inject constructor(
-    private val eventRepository : EventRepository,
+    private val eventRepository : EventRepository
 ) {
     operator fun invoke(event: Event){
         return eventRepository.updateEvent(event)

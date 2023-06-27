@@ -80,7 +80,7 @@ fun calendarsForList(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun calendarForEvent(
-    openAlertDialogCalendars: MutableState<Boolean>,
+    openAlertDialog: MutableState<Boolean>,
     eventVM: EventVM
 ){
     var calendarNameTemporal = remember {
@@ -88,7 +88,7 @@ fun calendarForEvent(
     var calendarIdTemporal = remember {
         mutableStateOf(eventVM.calendarIdForBottomSheet.value)}
     AlertDialog(onDismissRequest = {
-        openAlertDialogCalendars.value = false
+        openAlertDialog.value = false
         calendarIdTemporal.value = eventVM.calendarIdForBottomSheet.value
         calendarNameTemporal.value = eventVM.calendarDisplayNameForBottomSheet.value
     }) {
@@ -133,7 +133,7 @@ fun calendarForEvent(
                 Spacer(modifier = Modifier.height(24.dp))
                 TextButton(
                     onClick = {
-                        openAlertDialogCalendars.value = false
+                        openAlertDialog.value = false
                         eventVM.calendarDisplayNameForBottomSheet.value = calendarNameTemporal.value
                         eventVM.calendarIdForBottomSheet.value = calendarIdTemporal.value
                     },

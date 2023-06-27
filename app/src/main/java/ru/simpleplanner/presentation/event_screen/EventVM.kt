@@ -49,7 +49,6 @@ class EventVM @Inject constructor(
         arrayOf("Каждый месяц", "MONTHLY/1")
     )
 
-
     var calendarsList = mutableStateOf(getCalendarsUseCase(permissionsGranted.value))
     var eventsList = mutableStateOf(
         getEventsUseCase(selectedDate.value, selectedCalendarsId.value))

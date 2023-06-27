@@ -6,10 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
@@ -41,25 +44,46 @@ class MainActivity : ComponentActivity(
         setContent {
             val navController = rememberNavController()
             SimplePlannerTheme {
-                UiController(isSystemInDarkTheme())
-                NavHost(navController = navController, startDestination = "event_screen"){
-                    composable("event_screen"){
-                        eventActivity(eventVM = eventVM,
-                            onClickTask = { navController.navigate("task_screen"){
-                                popUpTo(navController.graph.id) {
-                                    inclusive = true
+                Box(modifier = Modifier.background(colorScheme.background)) {
+                    UiController(isSystemInDarkTheme())
+                    NavHost(navController = navController, startDestination = "event_screen") {
+                        composable("event_screen") {
+                            eventActivity(eventVM = eventVM,
+                                onClickTask = {
+                                    navController.navigate("task_screen") {
+                                        popUpTo(navController.graph.id) {
+                                            inclusive = true
+                                        }
+                                    }
+                                },
+                                onClickTimer = {
+                                    navController.navigate("timer_screen") {
+                                        popUpTo(navController.graph.id) {
+                                            inclusive = true
+                                        }
+                                    }
                                 }
-                            } },
-                            onClickTimer = {navController.navigate("timer_screen"){
-                                popUpTo(navController.graph.id) {
-                                    inclusive = true
-                                }
-                            } }
-                        )
+                            )
 
-                    }
-                    composable("task_screen"){
-                        taskActivity(taskVM)
+                        }
+                        composable("task_screen") {
+                            taskActivity(taskVM,
+                                onClickCalendar = {
+                                    navController.navigate("event_screen") {
+                                        popUpTo(navController.graph.id) {
+                                            inclusive = true
+                                        }
+                                    }
+                                },
+                                onClickTimer = {
+                                    navController.navigate("timer_screen") {
+                                        popUpTo(navController.graph.id) {
+                                            inclusive = true
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }

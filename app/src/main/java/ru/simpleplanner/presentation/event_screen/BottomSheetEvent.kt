@@ -2,6 +2,7 @@ package ru.simpleplanner.presentation.event_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,7 +48,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun bottomSheet(
+fun bottomSheetEvent(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM
@@ -59,10 +60,9 @@ fun bottomSheet(
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        modifier = Modifier.background(Color.Green),
         containerColor = colorScheme.background,
         sheetShadowElevation = 0.dp,
-        sheetContent = { bottomSheetContent(
+        sheetContent = { bottomSheetContentEvent(
             scope,
             scaffoldState,
             eventVM,
@@ -92,7 +92,7 @@ fun bottomSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun bottomSheetContent(
+fun bottomSheetContentEvent(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM,
@@ -102,6 +102,8 @@ fun bottomSheetContent(
     openAlertDialogLocation: MutableState<Boolean>
 ) {
 
+    val interactionSource = MutableInteractionSource()
+
     val dateDialogState = rememberMaterialDialogState()
 
     val startTimeDialogState = rememberMaterialDialogState()
@@ -110,7 +112,7 @@ fun bottomSheetContent(
 
     Column(
         modifier = Modifier
-            .height(500.dp)
+            .wrapContentHeight()
             .fillMaxWidth()
             .padding(32.dp, 0.dp, 32.dp, 0.dp)
     ){
@@ -125,13 +127,13 @@ fun bottomSheetContent(
         Spacer(modifier = Modifier.padding(8.dp))
         pickAllDay(eventVM)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickRepeatRule(eventVM, openAlertDialogRepeatRule)
+        pickRepeatRule(eventVM, openAlertDialogRepeatRule, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickCalendar(openAlertDialogCalendars, eventVM)
+        pickCalendar(openAlertDialogCalendars, eventVM, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickDescription(openAlertDialogDescription)
+        pickDescription(openAlertDialogDescription, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickLocation(openAlertDialogLocation)
+        pickLocation(openAlertDialogLocation, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
         button(scope, scaffoldState, eventVM)
     }
@@ -419,7 +421,8 @@ fun pickEndTime(
 @Composable
 fun pickRepeatRule(
     eventVM: EventVM,
-    openAlertDialogRepeatRule: MutableState<Boolean>
+    openAlertDialogRepeatRule: MutableState<Boolean>,
+    interactionSource: MutableInteractionSource
 ){
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
@@ -430,8 +433,12 @@ fun pickRepeatRule(
         )
         Spacer(modifier = Modifier.padding(2.dp))
         Row( modifier = Modifier
-            .weight(6f)
-            .clickable { openAlertDialogRepeatRule.value = true },
+            .weight(6f).
+            clickable(
+                interactionSource = interactionSource,
+                onClick = {openAlertDialogRepeatRule.value = true },
+                indication = null
+            ),
             horizontalArrangement = Arrangement.End) {
             Text(
                 text = eventVM.repeatRuleForBottomSheet.value[0],
@@ -479,7 +486,8 @@ fun pickAllDay(
 @Composable
 fun pickCalendar(
     openAlertDialogCalendars: MutableState<Boolean>,
-    eventVM: EventVM
+    eventVM: EventVM,
+    interactionSource: MutableInteractionSource
 ){
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
@@ -491,7 +499,11 @@ fun pickCalendar(
         Spacer(modifier = Modifier.padding(2.dp))
         Row(modifier = Modifier
             .weight(6f)
-            .clickable { openAlertDialogCalendars.value = true },
+            .clickable(
+                interactionSource = interactionSource,
+                onClick = { openAlertDialogCalendars.value = true },
+                indication = null
+            ),
             horizontalArrangement = Arrangement.End) {
             Text(
                 text = eventVM.calendarDisplayNameForBottomSheet.value,
@@ -507,7 +519,10 @@ fun pickCalendar(
 }
 
 @Composable
-fun pickDescription(openAlertDialogDescription: MutableState<Boolean>){
+fun pickDescription(
+    openAlertDialogDescription: MutableState<Boolean>,
+    interactionSource: MutableInteractionSource
+){
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
             text = "Описание",
@@ -516,7 +531,11 @@ fun pickDescription(openAlertDialogDescription: MutableState<Boolean>){
         )
         Row(modifier = Modifier
             .weight(6f)
-            .clickable { openAlertDialogDescription.value = true },
+            .clickable(
+                interactionSource = interactionSource,
+                onClick = { openAlertDialogDescription.value = true },
+                indication = null
+            ),
             horizontalArrangement = Arrangement.End
         ){
             Icon(
@@ -529,7 +548,8 @@ fun pickDescription(openAlertDialogDescription: MutableState<Boolean>){
 
 @Composable
 fun pickLocation(
-    openAlertDialogLocation: MutableState<Boolean>
+    openAlertDialogLocation: MutableState<Boolean>,
+    interactionSource: MutableInteractionSource
 ){
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
@@ -539,7 +559,11 @@ fun pickLocation(
         )
         Row(modifier = Modifier
             .weight(6f)
-            .clickable { openAlertDialogLocation.value = true },
+            .clickable(
+                interactionSource = interactionSource,
+                onClick = { openAlertDialogLocation.value = true },
+                indication = null
+            ),
             horizontalArrangement = Arrangement.End
         ){
             Icon(
@@ -559,7 +583,7 @@ fun button(
 ) {
     Row(modifier = Modifier
         .fillMaxWidth()
-        .padding(16.dp, 0.dp, 16.dp, 0.dp),
+        .padding(16.dp, 16.dp, 16.dp, 56.dp),
         horizontalArrangement = Arrangement.Center
     ) {
         if(eventVM.updaterBottomSheet.value) {
