@@ -19,10 +19,8 @@ import java.util.TimeZone
 import javax.inject.Inject
 
 class EventRepositoryImpl @Inject constructor (
-    app: Application
+    private val appContext: Application
 ): EventRepository {
-
-    val appContext = app
 
     override fun deleteEvent(id: String) {
         val deleteUri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id.toLong())

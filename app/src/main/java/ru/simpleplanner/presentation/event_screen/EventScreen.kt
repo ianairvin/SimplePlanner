@@ -400,9 +400,9 @@ fun addButton(
 fun navigationBar(onClickTask: () -> Unit, onClickTimer: () -> Unit) {
     var selectedItem by remember { mutableStateOf("calendar") }
     Divider(
-        color = colorScheme.surfaceVariant,
+        color = if(isSystemInDarkTheme()) colorScheme.surfaceVariant else Color.LightGray,
         thickness  = 1.dp,
-        modifier = Modifier.padding(32.dp, 0.dp, 32.dp, 0.dp)
+        modifier = Modifier.padding(36.dp, 0.dp, 36.dp, 0.dp)
     )
     NavigationBar(
         modifier = Modifier.padding(48.dp, 0.dp, 48.dp, 16.dp),

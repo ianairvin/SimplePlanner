@@ -1,5 +1,6 @@
 package ru.simpleplanner.presentation.task_screen
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,7 +26,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -64,6 +67,7 @@ import ru.simpleplanner.presentation.event_screen.pickStartTime
 import ru.simpleplanner.presentation.event_screen.repeatRuleForEvent
 import ru.simpleplanner.presentation.event_screen.titleEvent
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -119,12 +123,12 @@ fun bottomSheetContentTask(
             .padding(32.dp, 0.dp, 32.dp, 0.dp)
     ){
         titleTask(taskVM)
+     //   Spacer(modifier = Modifier.padding(8.dp))
+    //    pickWithoutDate(taskVM)
         Spacer(modifier = Modifier.padding(8.dp))
         dateTask(dateDialogState, taskVM, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
         pickRepeatRule(taskVM, openAlertDialogRepeatRule, interactionSource)
-        //Spacer(modifier = Modifier.padding(8.dp))
-       // pickColor()
         Spacer(modifier = Modifier.padding(8.dp))
         pickNote(openAlertDialogNote, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
@@ -151,6 +155,37 @@ fun titleTask(taskVM: TaskVM){
 }
 
 @Composable
+fun pickWithoutDate(
+    taskVM: TaskVM
+){
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(36.dp, 0.dp, 32.dp, 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ){
+        Text(
+            text = "Без даты",
+            modifier = Modifier.weight(3f)
+            ,
+            textAlign = TextAlign.Start
+        )
+        Spacer(modifier = Modifier.padding(2.dp))
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.End
+        ) {
+            val checked by remember {
+                mutableStateOf(taskVM.withoutDateForBottomSheet)}
+            Switch(
+                checked = taskVM.withoutDateForBottomSheet.value,
+                onCheckedChange = {
+                    checked.value = it
+                    taskVM.withoutDateForBottomSheet.value = it
+                })
+        }
+    }
+}
+@Composable
 fun dateTask(
     dateDialogState: MaterialDialogState,
     taskVM: TaskVM,
@@ -163,12 +198,15 @@ fun dateTask(
                 .format(taskVM.dateForBottomSheet.value)
         }
     }
+
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
             text = "День",
             modifier = Modifier
                 .weight(5f),
-            textAlign = TextAlign.Start
+            textAlign = TextAlign.Start,
+            color = if(taskVM.withoutDateForBottomSheet.value) Color.Gray
+            else colorScheme.onBackground
         )
         Spacer(modifier = Modifier.padding(2.dp))
         Row( modifier = Modifier
@@ -180,12 +218,17 @@ fun dateTask(
             ),
             horizontalArrangement = Arrangement.End) {
             Text(
-                text = "day",
-                textAlign = TextAlign.End
+                text = if(taskVM.withoutDateForBottomSheet.value) "Нет"
+                            else formattedDate,
+                textAlign = TextAlign.End,
+                color = if(taskVM.withoutDateForBottomSheet.value) Color.Gray
+                else colorScheme.onBackground
             )
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowRight,
-                contentDescription = "Choose date"
+                contentDescription = "Choose date",
+                tint = if(taskVM.withoutDateForBottomSheet.value) Color.Gray
+                else colorScheme.onBackground
             )
         }
     }
@@ -258,7 +301,8 @@ fun pickDate(
     dateDialogState: MaterialDialogState,
     taskVM: TaskVM
 ){
-    var pickedDateTemporal = taskVM.dateForBottomSheet.value
+    var pickedDateTemporal = if(taskVM.withoutDateForBottomSheet.value) LocalDate.now()
+                                else taskVM.dateForBottomSheet.value
     MaterialDialog(
         dialogState = dateDialogState,
         backgroundColor = MaterialTheme.colorScheme.background,
@@ -285,6 +329,7 @@ fun pickDate(
         ) {
             pickedDateTemporal = it
         }
+        pickWithoutDate(taskVM = taskVM)
     }
 }
 

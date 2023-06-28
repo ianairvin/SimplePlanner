@@ -508,11 +508,16 @@ fun pickCalendar(
             Text(
                 text = eventVM.calendarDisplayNameForBottomSheet.value,
                 textAlign = TextAlign.End,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                modifier = Modifier
+                    .weight(5f)
             )
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowRight,
-                contentDescription = "Choose calendar"
+                contentDescription = "Choose calendar",
+                modifier = Modifier
+                    .weight(1f)
             )
         }
     }
@@ -555,10 +560,10 @@ fun pickLocation(
         Text(
             text = "Местоположение",
             textAlign = TextAlign.Start,
-            modifier = Modifier.weight(5f)
+            modifier = Modifier.weight(7f)
         )
         Row(modifier = Modifier
-            .weight(6f)
+            .weight(3f)
             .clickable(
                 interactionSource = interactionSource,
                 onClick = { openAlertDialogLocation.value = true },

@@ -1,10 +1,13 @@
 package ru.simpleplanner.presentation.task_screen
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.icu.text.CaseMap.Title
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -30,6 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +54,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.simpleplanner.R
 import ru.simpleplanner.domain.entities.Task
@@ -73,7 +81,7 @@ fun taskActivity(taskVM: TaskVM, onClickCalendar: () -> Unit, onClickTimer: () -
         taskVM,
         onClickCalendar,
         onClickTimer
-        )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -100,10 +108,10 @@ private fun scaffold(
         Column(modifier = Modifier.padding(contentPadding)) {
             taskScreenContent(
                 taskVM,
-                taskVM.tasksListToday,
-                taskVM.tasksListTomorrow,
-                taskVM.tasksListWeek,
-                taskVM.tasksListSomeDay,
+                taskVM.tasksListToday.collectAsState(initial = emptyList()),
+                taskVM.tasksListTomorrow.collectAsState(initial = emptyList()),
+                taskVM.tasksListWeek.collectAsState(initial = emptyList()),
+                taskVM.tasksListSomeDay.collectAsState(initial = emptyList()),
                 scope,
                 bottomSheetScaffoldState
             )
@@ -112,14 +120,15 @@ private fun scaffold(
     bottomSheetTask(scope, bottomSheetScaffoldState, taskVM)
 }
 
+@SuppressLint("UnrememberedMutableInteractionSource")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun taskScreenContent(
     taskVM: TaskVM,
-    tasksListToday: MutableState<List<Task>>,
-    tasksListTomorrow: MutableState<List<Task>>,
-    tasksListWeek: MutableState<List<Task>>,
-    tasksListSomeDay: MutableState<List<Task>>,
+    tasksListToday: State<List<Task>>,
+    tasksListTomorrow: State<List<Task>>,
+    tasksListWeek: State<List<Task>>,
+    tasksListSomeDay: State<List<Task>>,
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState
 ) {
@@ -139,7 +148,7 @@ fun taskScreenContent(
         }
         if (todayListOpen.value && tasksListToday.value.isNotEmpty()) {
             itemsIndexed(tasksListToday.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState) }
+            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (todayListOpen.value){
             item { noTasksMessage() }
         }
@@ -149,7 +158,7 @@ fun taskScreenContent(
         }
         if (tomorrowListOpen.value && tasksListTomorrow.value.isNotEmpty()) {
             itemsIndexed(tasksListTomorrow.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState) }
+            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (tomorrowListOpen.value){
             item { noTasksMessage() }
         }
@@ -159,7 +168,7 @@ fun taskScreenContent(
         }
         if (weekListOpen.value && tasksListWeek.value.isNotEmpty()) {
             itemsIndexed(tasksListWeek.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState) }
+            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (weekListOpen.value){
             item { noTasksMessage() }
         }
@@ -169,7 +178,7 @@ fun taskScreenContent(
         }
         if (someDayListOpen.value && tasksListSomeDay.value.isNotEmpty()) {
             itemsIndexed(tasksListSomeDay.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState) }
+            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (someDayListOpen.value){
             item { noTasksMessage() }
         }
@@ -179,7 +188,9 @@ fun taskScreenContent(
 @Composable
 fun noTasksMessage(){
     Text(
-        modifier = Modifier.padding(36.dp, 0.dp, 36.dp, 0.dp).fillMaxWidth(),
+        modifier = Modifier
+            .padding(36.dp, 0.dp, 36.dp, 0.dp)
+            .fillMaxWidth(),
         text = "Задач нет",
         textAlign = TextAlign.Center,
         color = Color.Gray
@@ -193,13 +204,14 @@ fun titleSection(
     interactionSource: MutableInteractionSource
 ) {
     Row(
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(40.dp, 8.dp, 24.dp, 0.dp)
     ) {
         Text(
             text = text,
             modifier = Modifier
-                .padding(40.dp, 8.dp, 0.dp, 8.dp)
-                .weight(7f),
+                .weight(6f),
             textAlign = TextAlign.Start,
             fontSize = 20.sp,
             fontWeight = FontWeight.W700,
@@ -213,7 +225,7 @@ fun titleSection(
             },
             contentDescription = "",
             modifier = Modifier
-                .weight(3f)
+                .weight(1f)
                 .clickable(
                     interactionSource = interactionSource,
                     onClick = { listOpen.value = !listOpen.value },
@@ -231,30 +243,60 @@ fun listTasks(
     item: Task,
     taskVM: TaskVM,
     scope: CoroutineScope,
-    scaffoldState: BottomSheetScaffoldState
+    scaffoldState: BottomSheetScaffoldState,
+    interactionSource: MutableInteractionSource
 ) {
     Row(
-        modifier = Modifier.padding(36.dp, 0.dp, 36.dp, 0.dp).fillMaxWidth(),
+        modifier = Modifier
+            .padding(52.dp, 8.dp, 36.dp, 8.dp)
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val checkedState = remember { mutableStateOf(item.check) }
-        Checkbox(
-            checked = checkedState.value,
-            onCheckedChange = {
-                checkedState.value = !checkedState.value
-                taskVM.editStatus(item.id)
-            }
-        )
+        if(checkedState.value) {
+            Icon(
+                painter = painterResource(id = R.drawable.check_circle),
+                contentDescription = null,
+                modifier = Modifier
+                    .clickable {
+                        checkedState.value = !checkedState.value
+                        taskVM.editStatus(item.id!!, checkedState.value)
+                    }
+                    .height(20.dp)
+                    .width(20.dp),
+                tint = Color.Gray
+            )
+        } else {
+            Icon(
+                painter = painterResource(id = R.drawable.outline_circle),
+                contentDescription = null,
+                modifier = Modifier
+                    .clickable {
+                        checkedState.value = !checkedState.value
+                        taskVM.editStatus(item.id!!, checkedState.value)
+                    }
+                    .height(20.dp)
+                    .width(20.dp),
+            )
+        }
+
         Spacer(modifier = Modifier.padding(4.dp))
+
         Text(
             text = item.title,
             textAlign = TextAlign.Start,
             overflow = TextOverflow.Ellipsis,
-            modifier =  Modifier.clickable{
-                scope.launch{
-                    scaffoldState.bottomSheetState.expand()
-                }
-            }
+            modifier =  Modifier.clickable(
+                interactionSource = interactionSource,
+                onClick = {
+                    taskVM.pickedTaskForBottomSheet(item.id!!)
+                    scope.launch{
+                        scaffoldState.bottomSheetState.expand()
+                    }
+                },
+                indication = null
+            ),
+            color = if(item.check) Color.Gray else colorScheme.onBackground
         )
     }
 }
@@ -288,9 +330,9 @@ fun addButton(
 fun navigationBar(onClickCalendar: () -> Unit, onClickTimer: () -> Unit) {
     var selectedItem by remember { mutableStateOf("checklist") }
     Divider(
-        color = colorScheme.surfaceVariant,
+        color = if(isSystemInDarkTheme()) colorScheme.surfaceVariant else Color.LightGray,
         thickness  = 1.dp,
-        modifier = Modifier.padding(32.dp, 0.dp, 32.dp, 0.dp)
+        modifier = Modifier.padding(36.dp, 0.dp, 36.dp, 0.dp)
     )
     NavigationBar(
         modifier = Modifier.padding(48.dp, 0.dp, 48.dp, 16.dp),

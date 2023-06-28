@@ -10,10 +10,8 @@ import ru.simpleplanner.domain.repository.CalendarRepository
 import javax.inject.Inject
 
 class CalendarRepositoryImpl @Inject constructor (
-    app: Application
+    private val appContext: Application
 ): CalendarRepository{
-
-    val appContext = app
     override fun getCalendars(permissionsGranted: Boolean) : List<Calendar> {
         if (permissionsGranted) {
             val calendars = arrayListOf<Calendar>()
