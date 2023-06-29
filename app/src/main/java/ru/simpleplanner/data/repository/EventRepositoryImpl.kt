@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.ContentUris
 import android.content.ContentValues
 import android.provider.CalendarContract
-import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
 import ru.simpleplanner.domain.entities.Event
@@ -14,7 +13,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.ZonedDateTime
 import java.util.TimeZone
 import javax.inject.Inject
 
@@ -213,7 +211,7 @@ class EventRepositoryImpl @Inject constructor (
     }
 
     override fun insertEvent(event: Event) {
-        var values: ContentValues
+        val values: ContentValues
         var start = event.start.atZone(ZoneOffset.systemDefault())
             .toInstant().toEpochMilli()
         var end = event.end.atZone(ZoneOffset.systemDefault())
@@ -261,7 +259,7 @@ class EventRepositoryImpl @Inject constructor (
     }
 
     override fun updateEvent(event: Event) {
-        var values: ContentValues
+        val values: ContentValues
         if (event.repeatRule != "") {
             val rRuleAttribute = event.repeatRule?.split("/")
             val rRule = "FREQ=" + rRuleAttribute!![0] + ";INTERVAL=" + rRuleAttribute[1]

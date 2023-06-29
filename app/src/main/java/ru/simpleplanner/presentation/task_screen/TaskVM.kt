@@ -1,6 +1,6 @@
 package ru.simpleplanner.presentation.task_screen
 
-import android.util.Log
+import android.annotation.SuppressLint
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -37,8 +37,8 @@ class TaskVM @Inject constructor(
     val repeatRuleForBottomSheet =  mutableStateOf(arrayOf("Нет", ""))
     val noteForBottomSheet = mutableStateOf("")
     val dateForBottomSheet =  mutableStateOf(LocalDate.now())
-    val idForBottomSheet =  mutableIntStateOf(0)
-    val checkForBottomSheet =  mutableStateOf(false)
+    private val idForBottomSheet =  mutableIntStateOf(0)
+    private val checkForBottomSheet =  mutableStateOf(false)
     val withoutDateForBottomSheet =  mutableStateOf(false)
 
     val updaterBottomSheet = mutableStateOf(false)
@@ -58,6 +58,7 @@ class TaskVM @Inject constructor(
         dateForBottomSheet.value = LocalDate.now()
     }
 
+    @SuppressLint("AutoboxingStateValueProperty")
     fun pickedTaskForBottomSheet(id: Int) = viewModelScope.launch {
         updaterBottomSheet.value = true
 
@@ -77,6 +78,7 @@ class TaskVM @Inject constructor(
         checkForBottomSheet.value  = task.check
     }
 
+    @SuppressLint("AutoboxingStateValueProperty")
     fun saveOrUpdateTask() = viewModelScope.launch {
         val task = Task(
             id = if(idForBottomSheet.value == 0) null else idForBottomSheet.value,
@@ -98,6 +100,7 @@ class TaskVM @Inject constructor(
         editStatusTaskUseCase(id, check)
     }
 
+    @SuppressLint("AutoboxingStateValueProperty")
     fun deleteTask() = viewModelScope.launch{
         deleteTaskUseCase(idForBottomSheet.value)
     }

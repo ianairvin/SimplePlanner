@@ -6,7 +6,6 @@ import ru.simpleplanner.data.room.Dao
 import ru.simpleplanner.data.room.TaskDB
 import ru.simpleplanner.domain.entities.Task
 import ru.simpleplanner.domain.repository.TaskRepository
-import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -17,7 +16,7 @@ class TaskRepositoryImpl @Inject constructor (
     private val dao: Dao
 ): TaskRepository {
 
-    val differenceBetweenTwoDaysOfWeek = arrayOf(
+    private val differenceBetweenTwoDaysOfWeek = arrayOf(
         arrayOf(0,1,2,3,4,5,6),
         arrayOf(6,0,1,2,3,4,5),
         arrayOf(5,6,0,1,2,3,4),
@@ -60,12 +59,13 @@ class TaskRepositoryImpl @Inject constructor (
     override suspend fun getOneTask(id: Int): Task {
         val taskDB = dao.getById(id)
         val date: LocalDate =
-            if(taskDB.repeatRule == "DAILY") { LocalDate.now() }
-            else if (taskDB.repeatRule == "WEEKLY") {
-                LocalDate.now()
+            when(taskDB.repeatRule) {
+                "DAILY" -> LocalDate.now()
+                "WEEKLY" -> LocalDate.now()
                     .plusDays(differenceBetweenTwoDaysOfWeek[taskDB.dayOfWeek][LocalDate.now().dayOfWeek.value].toLong())
-            } else { Instant.ofEpochMilli(taskDB.date)
-                                    .atZone(ZoneId.systemDefault()).toLocalDate() }
+                else -> Instant.ofEpochMilli(taskDB.date)
+                        .atZone(ZoneId.systemDefault()).toLocalDate()
+            }
         return Task(
             taskDB.id,
             taskDB.title,
@@ -79,7 +79,7 @@ class TaskRepositoryImpl @Inject constructor (
     }
 
     override fun getTasks(period: String): Flow<List<Task>> {
-        var listTasksBeforeMapping : Flow<List<TaskDB>>
+        val listTasksBeforeMapping : Flow<List<TaskDB>>
         if(period == "Today"){
             listTasksBeforeMapping = dao.getToday(LocalDate.now().atStartOfDay().
             atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
@@ -89,11 +89,8 @@ class TaskRepositoryImpl @Inject constructor (
                 .atStartOfDay().atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
                 LocalDate.now().plusDays(1).dayOfWeek.value)
         } else if (period == "Week") {
-            var sunday = LocalDate.now()
-            while(sunday.dayOfWeek != DayOfWeek.SUNDAY){
-                sunday = sunday.plusDays(1)
-            }
-            val dayOfWeek = when(LocalDate.now().dayOfWeek.value){
+            val dayThroughTheWeek = LocalDate.now().plusDays(6)
+            val daysOfWeek = when(LocalDate.now().dayOfWeek.value){
                 1 -> arrayOf(3,4,5,6,7)
                 2 -> arrayOf(4,5,6,7,1)
                 3 -> arrayOf(5,6,7,1,2)
@@ -108,9 +105,9 @@ class TaskRepositoryImpl @Inject constructor (
             listTasksBeforeMapping = dao.getWeek(
                 LocalDate.now().plusDays(1).atStartOfDay().atZone(ZoneOffset.systemDefault())
                     .toInstant().toEpochMilli(),
-                sunday.atStartOfDay().atZone(ZoneOffset.systemDefault())
+                dayThroughTheWeek.atStartOfDay().atZone(ZoneOffset.systemDefault())
                     .toInstant().toEpochMilli(),
-                dayOfWeek
+                daysOfWeek
             )
         } else {
             listTasksBeforeMapping = dao.getSomeDay()

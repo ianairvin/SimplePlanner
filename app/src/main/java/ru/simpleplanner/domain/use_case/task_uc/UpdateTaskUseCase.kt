@@ -7,7 +7,7 @@ import javax.inject.Inject
 class UpdateTaskUseCase @Inject constructor(
     private val taskRepository: TaskRepository
 ) {
-    operator suspend fun invoke(task: Task){
+    suspend operator fun invoke(task: Task){
         return taskRepository.updateTask(task)
     }
 }

@@ -1,22 +1,17 @@
 package ru.simpleplanner.presentation.event_screen
 
-import ru.simpleplanner.R
 import android.Manifest
 import android.graphics.Color.parseColor
-import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.rounded.DateRange
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,13 +23,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -53,7 +45,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,19 +54,17 @@ import androidx.core.graphics.ColorUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.android.material.bottomnavigation.BottomNavigationItemView
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.DatePickerDefaults
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import ru.simpleplanner.R
 import ru.simpleplanner.domain.entities.Event
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
 import ru.simpleplanner.presentation.ui.theme.neutral40
 import ru.simpleplanner.presentation.ui.theme.neutral60
-import ru.simpleplanner.presentation.ui.theme.surface
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -85,18 +74,18 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalPermissionsApi
 @Composable
-fun eventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () -> Unit) {
+fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () -> Unit) {
     val permissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.READ_CALENDAR,
             Manifest.permission.WRITE_CALENDAR
         )
     )
-    var openAlertDialog = remember { mutableStateOf(false) }
+    val openAlertDialog = remember { mutableStateOf(false) }
     if (openAlertDialog.value) {
-        calendarsForList(openAlertDialog, eventVM)
+        CalendarAlertDialogListOfCalendars(openAlertDialog, eventVM)
     }
-    var bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = SheetState(
             skipPartiallyExpanded = true,
             initialValue = SheetValue.Hidden,
@@ -109,7 +98,7 @@ fun eventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () ->
         eventVM.permissionsGranted.value = true
         eventVM.getCalendars()
         eventVM.getEvents()
-        scaffold(
+        CalendarScaffold(
             openAlertDialog,
             scope,
             bottomSheetScaffoldState,
@@ -118,13 +107,13 @@ fun eventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () ->
             onClickTimer
         )
     } else {
-        getPermissions(permissionsState)
+        CalendarGetPermissions(permissionsState)
     }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun getPermissions(permissionsState: MultiplePermissionsState) {
+private fun CalendarGetPermissions(permissionsState: MultiplePermissionsState) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         content = {contentPadding ->
@@ -148,9 +137,9 @@ private fun getPermissions(permissionsState: MultiplePermissionsState) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun scaffold(
+private fun CalendarScaffold(
     openAlertDialog: MutableState<Boolean>,
     scope: CoroutineScope,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
@@ -166,22 +155,22 @@ private fun scaffold(
         } else {
             Modifier.fillMaxSize()
         },
-        topBar = { settingsTopBar(openAlertDialog) },
-        floatingActionButton = { addButton(scope, bottomSheetScaffoldState, eventVM) },
-        bottomBar = { navigationBar(onClickTask, onClickTimer)},
+        topBar = { CalendarSettingsTopBar(openAlertDialog) },
+        floatingActionButton = { CalendarAddEventButton(scope, bottomSheetScaffoldState, eventVM) },
+        bottomBar = { CalendarNavigationBar(onClickTask, onClickTimer)},
         containerColor = colorScheme.background
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
-            pickDay(eventVM)
-            listEvents(eventVM.eventsList, scope, bottomSheetScaffoldState, eventVM)
+            CalendarListEventsDate(eventVM)
+            CalendarListEvents(eventVM.eventsList, scope, bottomSheetScaffoldState, eventVM)
         }
     }
-    bottomSheetEvent(scope, bottomSheetScaffoldState, eventVM)
+    CalendarBottomSheet(scope, bottomSheetScaffoldState, eventVM)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun settingsTopBar(openAlertDialog: MutableState<Boolean>) {
+private fun CalendarSettingsTopBar(openAlertDialog: MutableState<Boolean>) {
     TopAppBar(
         title = {},
         colors =  TopAppBarDefaults.topAppBarColors(Color.Transparent),
@@ -195,7 +184,7 @@ private fun settingsTopBar(openAlertDialog: MutableState<Boolean>) {
 }
 
 @Composable
-fun pickDay(eventVM: EventVM) {
+fun CalendarListEventsDate(eventVM: EventVM) {
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
@@ -254,14 +243,14 @@ fun pickDay(eventVM: EventVM) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun listEvents(
+fun CalendarListEvents(
     events: MutableState<List<Event>>,
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM
 ) {
     if (events.value.isNotEmpty()) {
-        LazyColumn() {
+        LazyColumn {
             itemsIndexed(events.value.sortedBy { it.start }.sortedBy { it.allDay == 0 }) { _, item ->
                 Row(
                     modifier = Modifier
@@ -372,7 +361,7 @@ fun listEvents(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun addButton(
+fun CalendarAddEventButton(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM
@@ -397,7 +386,7 @@ fun addButton(
 
 
 @Composable
-fun navigationBar(onClickTask: () -> Unit, onClickTimer: () -> Unit) {
+fun CalendarNavigationBar(onClickTask: () -> Unit, onClickTimer: () -> Unit) {
     var selectedItem by remember { mutableStateOf("calendar") }
     Divider(
         color = if(isSystemInDarkTheme()) colorScheme.surfaceVariant else Color.LightGray,

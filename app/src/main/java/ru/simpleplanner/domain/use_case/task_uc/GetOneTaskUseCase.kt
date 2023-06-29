@@ -8,7 +8,7 @@ import javax.inject.Inject
 class GetOneTaskUseCase @Inject constructor(
     private val taskRepository : TaskRepository
 ) {
-    operator suspend fun invoke(id: Int) : Task {
+    suspend operator fun invoke(id: Int) : Task {
         return taskRepository.getOneTask(id)
     }
 }

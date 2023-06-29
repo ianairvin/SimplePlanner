@@ -23,9 +23,11 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
 import ru.simpleplanner.presentation.event_screen.EventVM
 import ru.simpleplanner.presentation.ui.theme.SimplePlannerTheme
-import ru.simpleplanner.presentation.event_screen.eventActivity
+import ru.simpleplanner.presentation.event_screen.EventActivity
 import ru.simpleplanner.presentation.task_screen.TaskVM
-import ru.simpleplanner.presentation.task_screen.taskActivity
+import ru.simpleplanner.presentation.task_screen.TaskActivity
+import ru.simpleplanner.presentation.timer_screen.TimerVM
+import ru.simpleplanner.presentation.timer_screen.TimerActivity
 
 @AndroidEntryPoint
 @OptIn(ExperimentalPermissionsApi::class)
@@ -35,6 +37,8 @@ class MainActivity : ComponentActivity(
 
     private val eventVM: EventVM by viewModels()
     private val taskVM: TaskVM by viewModels()
+    private val timerVM: TimerVM by viewModels()
+
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -47,8 +51,9 @@ class MainActivity : ComponentActivity(
                 Box(modifier = Modifier.background(colorScheme.background)) {
                     UiController(isSystemInDarkTheme())
                     NavHost(navController = navController, startDestination = "event_screen") {
+
                         composable("event_screen") {
-                            eventActivity(eventVM = eventVM,
+                            EventActivity(eventVM = eventVM,
                                 onClickTask = {
                                     navController.navigate("task_screen") {
                                         popUpTo(navController.graph.id) {
@@ -66,8 +71,9 @@ class MainActivity : ComponentActivity(
                             )
 
                         }
+
                         composable("task_screen") {
-                            taskActivity(taskVM,
+                            TaskActivity(taskVM,
                                 onClickCalendar = {
                                     navController.navigate("event_screen") {
                                         popUpTo(navController.graph.id) {
@@ -77,6 +83,25 @@ class MainActivity : ComponentActivity(
                                 },
                                 onClickTimer = {
                                     navController.navigate("timer_screen") {
+                                        popUpTo(navController.graph.id) {
+                                            inclusive = true
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        composable("timer_screen") {
+                            TimerActivity(timerVM,
+                                onClickCalendar = {
+                                    navController.navigate("event_screen") {
+                                        popUpTo(navController.graph.id) {
+                                            inclusive = true
+                                        }
+                                    }
+                                },
+                                onClickTask = {
+                                    navController.navigate("task_screen") {
                                         popUpTo(navController.graph.id) {
                                             inclusive = true
                                         }

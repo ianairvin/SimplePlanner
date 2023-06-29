@@ -1,11 +1,7 @@
 package ru.simpleplanner.presentation.task_screen
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.icu.text.CaseMap.Title
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -16,8 +12,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.BottomSheetScaffoldState
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -51,23 +45,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.MultiplePermissionsState
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.simpleplanner.R
 import ru.simpleplanner.domain.entities.Task
-import ru.simpleplanner.presentation.event_screen.descriptionForEvent
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalPermissionsApi
 @Composable
-fun taskActivity(taskVM: TaskVM, onClickCalendar: () -> Unit, onClickTimer: () -> Unit) {
-    var bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+fun TaskActivity(taskVM: TaskVM, onClickCalendar: () -> Unit, onClickTimer: () -> Unit) {
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = SheetState(
             skipPartiallyExpanded = true,
             initialValue = SheetValue.Hidden
@@ -75,7 +63,7 @@ fun taskActivity(taskVM: TaskVM, onClickCalendar: () -> Unit, onClickTimer: () -
     )
     val scope = rememberCoroutineScope()
 
-    scaffold(
+    TaskScaffold(
         scope,
         bottomSheetScaffoldState,
         taskVM,
@@ -84,9 +72,9 @@ fun taskActivity(taskVM: TaskVM, onClickCalendar: () -> Unit, onClickTimer: () -
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun scaffold(
+private fun TaskScaffold(
     scope: CoroutineScope,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
     taskVM: TaskVM,
@@ -101,12 +89,12 @@ private fun scaffold(
         } else {
             Modifier.fillMaxSize()
         },
-        floatingActionButton = { addButton(scope, bottomSheetScaffoldState, taskVM) },
-        bottomBar = { navigationBar(onClickCalendar, onClickTimer) },
+        floatingActionButton = { AddTaskButton(scope, bottomSheetScaffoldState, taskVM) },
+        bottomBar = { TaskNavigationBar(onClickCalendar, onClickTimer) },
         containerColor = colorScheme.background
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
-            taskScreenContent(
+            TaskScreenContent(
                 taskVM,
                 taskVM.tasksListToday.collectAsState(initial = emptyList()),
                 taskVM.tasksListTomorrow.collectAsState(initial = emptyList()),
@@ -117,13 +105,13 @@ private fun scaffold(
             )
         }
     }
-    bottomSheetTask(scope, bottomSheetScaffoldState, taskVM)
+    TaskBottomSheet(scope, bottomSheetScaffoldState, taskVM)
 }
 
 @SuppressLint("UnrememberedMutableInteractionSource")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun taskScreenContent(
+fun TaskScreenContent(
     taskVM: TaskVM,
     tasksListToday: State<List<Task>>,
     tasksListTomorrow: State<List<Task>>,
@@ -144,52 +132,52 @@ fun taskScreenContent(
             .padding(0.dp, 32.dp, 0.dp, 32.dp)
     ) {
         item {
-            titleSection(todayListOpen, "Сегодня", interactionSource)
+            TitleSectionTaskScreen(todayListOpen, "Сегодня", interactionSource)
         }
         if (todayListOpen.value && tasksListToday.value.isNotEmpty()) {
             itemsIndexed(tasksListToday.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
+            { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (todayListOpen.value){
-            item { noTasksMessage() }
+            item { NoTasksMessage() }
         }
 
         item {
-            titleSection(tomorrowListOpen, "Завтра", interactionSource)
+            TitleSectionTaskScreen(tomorrowListOpen, "Завтра", interactionSource)
         }
         if (tomorrowListOpen.value && tasksListTomorrow.value.isNotEmpty()) {
             itemsIndexed(tasksListTomorrow.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
+            { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (tomorrowListOpen.value){
-            item { noTasksMessage() }
+            item { NoTasksMessage() }
         }
 
         item {
-            titleSection(weekListOpen, "На неделе", interactionSource)
+            TitleSectionTaskScreen(weekListOpen, "На неделе", interactionSource)
         }
         if (weekListOpen.value && tasksListWeek.value.isNotEmpty()) {
             itemsIndexed(tasksListWeek.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
+            { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (weekListOpen.value){
-            item { noTasksMessage() }
+            item { NoTasksMessage() }
         }
 
         item {
-            titleSection(someDayListOpen, "Когда-нибудь", interactionSource)
+            TitleSectionTaskScreen(someDayListOpen, "Когда-нибудь", interactionSource)
         }
         if (someDayListOpen.value && tasksListSomeDay.value.isNotEmpty()) {
             itemsIndexed(tasksListSomeDay.value.sortedBy { it.makeDateTime })
-            { _, item -> listTasks(item, taskVM, scope, scaffoldState, interactionSource) }
+            { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (someDayListOpen.value){
-            item { noTasksMessage() }
+            item { NoTasksMessage() }
         }
     }
 }
 
 @Composable
-fun noTasksMessage(){
+fun NoTasksMessage(){
     Text(
         modifier = Modifier
-            .padding(36.dp, 0.dp, 36.dp, 0.dp)
+            .padding(36.dp, 8.dp, 36.dp, 8.dp)
             .fillMaxWidth(),
         text = "Задач нет",
         textAlign = TextAlign.Center,
@@ -198,7 +186,7 @@ fun noTasksMessage(){
 }
 
 @Composable
-fun titleSection(
+fun TitleSectionTaskScreen(
     listOpen: MutableState<Boolean>,
     text: String,
     interactionSource: MutableInteractionSource
@@ -239,7 +227,7 @@ fun titleSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun listTasks(
+fun ListTasks(
     item: Task,
     taskVM: TaskVM,
     scope: CoroutineScope,
@@ -303,7 +291,7 @@ fun listTasks(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun addButton(
+fun AddTaskButton(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     taskVM: TaskVM
@@ -327,7 +315,7 @@ fun addButton(
 }
 
 @Composable
-fun navigationBar(onClickCalendar: () -> Unit, onClickTimer: () -> Unit) {
+fun TaskNavigationBar(onClickCalendar: () -> Unit, onClickTimer: () -> Unit) {
     var selectedItem by remember { mutableStateOf("checklist") }
     Divider(
         color = if(isSystemInDarkTheme()) colorScheme.surfaceVariant else Color.LightGray,

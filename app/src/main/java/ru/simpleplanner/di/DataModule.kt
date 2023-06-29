@@ -42,7 +42,7 @@ class DataModule {
 
     @Provides
     @Singleton
-    fun provideTaskRepository(app: Application, db: DataBase) : TaskRepository {
+    fun provideTaskRepository(db: DataBase) : TaskRepository {
         return TaskRepositoryImpl(db.dao)
     }
 }

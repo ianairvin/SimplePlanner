@@ -1,5 +1,6 @@
 package ru.simpleplanner.presentation.event_screen
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,7 +16,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
-
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,7 +47,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun bottomSheetEvent(
+fun CalendarBottomSheet(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM
@@ -62,7 +61,7 @@ fun bottomSheetEvent(
         scaffoldState = scaffoldState,
         containerColor = colorScheme.background,
         sheetShadowElevation = 0.dp,
-        sheetContent = { bottomSheetContentEvent(
+        sheetContent = { CalendarBottomSheetEventContent(
             scope,
             scaffoldState,
             eventVM,
@@ -74,25 +73,25 @@ fun bottomSheetEvent(
     ){}
 
     if(openAlertDialogCalendars.value) {
-        calendarForEvent(openAlertDialogCalendars, eventVM)
+        CalendarAlertDialogListCalendarsForEvent(openAlertDialogCalendars, eventVM)
     }
 
     if(openAlertDialogDescription.value) {
-        descriptionForEvent(openAlertDialogDescription, eventVM)
+        CalendarAlertDialogEventDescription(openAlertDialogDescription, eventVM)
     }
 
     if(openAlertDialogRepeatRule.value) {
-        repeatRuleForEvent(openAlertDialogRepeatRule, eventVM)
+        CalendarAlertDialogEventRepeatRule(openAlertDialogRepeatRule, eventVM)
     }
 
     if(openAlertDialogLocation.value) {
-        locationForEvent(openAlertDialogLocation, eventVM)
+        CalendarAlertDialogEventLocation(openAlertDialogLocation, eventVM)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun bottomSheetContentEvent(
+fun CalendarBottomSheetEventContent(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM,
@@ -116,34 +115,34 @@ fun bottomSheetContentEvent(
             .fillMaxWidth()
             .padding(32.dp, 0.dp, 32.dp, 0.dp)
     ){
-        titleEvent(eventVM)
+        CalendarBottomSheetEventTitle(eventVM)
         Spacer(modifier = Modifier.padding(8.dp))
-        dateAndTimeEvent(
+        CalendarBottomSheetEventDateAndTime(
             dateDialogState,
             startTimeDialogState,
             endTimeDialogState,
             eventVM
         )
         Spacer(modifier = Modifier.padding(8.dp))
-        pickAllDay(eventVM)
+        CalendarBottomSheetEventAllDay(eventVM)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickRepeatRule(eventVM, openAlertDialogRepeatRule, interactionSource)
+        CalendarBottomSheetEventRepeatRule(eventVM, openAlertDialogRepeatRule, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickCalendar(openAlertDialogCalendars, eventVM, interactionSource)
+        CalendarBottomSheetEventCalendar(openAlertDialogCalendars, eventVM, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickDescription(openAlertDialogDescription, interactionSource)
+        CalendarBottomSheetEventDescription(openAlertDialogDescription, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickLocation(openAlertDialogLocation, interactionSource)
+        CalendarBottomSheetEventLocation(openAlertDialogLocation, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        button(scope, scaffoldState, eventVM)
+        CalendarBottomSheetButtons(scope, scaffoldState, eventVM)
     }
-    pickDate(dateDialogState, eventVM)
-    pickStartTime(startTimeDialogState, eventVM)
-    pickEndTime(endTimeDialogState, eventVM)
+    CalendarBottomSheetEventDatePicker(dateDialogState, eventVM)
+    CalendarBottomSheetEventStartTimePicker(startTimeDialogState, eventVM)
+    CalendarBottomSheetEventEndTimePicker(endTimeDialogState, eventVM)
 }
 
 @Composable
-fun titleEvent(eventVM: EventVM){
+fun CalendarBottomSheetEventTitle(eventVM: EventVM){
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -159,8 +158,9 @@ fun titleEvent(eventVM: EventVM){
     }
 }
 
+@SuppressLint("AutoboxingStateValueProperty")
 @Composable
-fun dateAndTimeEvent(
+fun CalendarBottomSheetEventDateAndTime(
     dateDialogState: MaterialDialogState,
     startTimeDialogState: MaterialDialogState,
     endTimeDialogState: MaterialDialogState,
@@ -300,7 +300,7 @@ fun dateAndTimeEvent(
 }
 
 @Composable
-fun pickDate(
+fun CalendarBottomSheetEventDatePicker(
     dateDialogState: MaterialDialogState,
     eventVM: EventVM
 ){
@@ -335,7 +335,7 @@ fun pickDate(
 }
 
 @Composable
-fun pickStartTime(
+fun CalendarBottomSheetEventStartTimePicker(
     startTimeDialogState: MaterialDialogState,
     eventVM: EventVM
 ){
@@ -377,7 +377,7 @@ fun pickStartTime(
 }
 
 @Composable
-fun pickEndTime(
+fun CalendarBottomSheetEventEndTimePicker(
     endTimeDialogState: MaterialDialogState,
     eventVM: EventVM
 ){
@@ -419,7 +419,7 @@ fun pickEndTime(
 }
 
 @Composable
-fun pickRepeatRule(
+fun CalendarBottomSheetEventRepeatRule(
     eventVM: EventVM,
     openAlertDialogRepeatRule: MutableState<Boolean>,
     interactionSource: MutableInteractionSource
@@ -452,8 +452,9 @@ fun pickRepeatRule(
     }
 }
 
+@SuppressLint("AutoboxingStateValueProperty")
 @Composable
-fun pickAllDay(
+fun CalendarBottomSheetEventAllDay(
     eventVM: EventVM
 ){
     Row( modifier = Modifier.fillMaxWidth(),
@@ -473,7 +474,7 @@ fun pickAllDay(
             val checked by remember {
                 mutableStateOf(eventVM.allDayForBottomSheet)}
             Switch(
-                checked = if(checked.value == 1) true else false,
+                checked = checked.value == 1,
                 onCheckedChange = {
                     checked.value = if(it) 1 else 0
                     if(it) eventVM.allDayForBottomSheet.value = 1
@@ -484,7 +485,7 @@ fun pickAllDay(
 }
 
 @Composable
-fun pickCalendar(
+fun CalendarBottomSheetEventCalendar(
     openAlertDialogCalendars: MutableState<Boolean>,
     eventVM: EventVM,
     interactionSource: MutableInteractionSource
@@ -524,7 +525,7 @@ fun pickCalendar(
 }
 
 @Composable
-fun pickDescription(
+fun CalendarBottomSheetEventDescription(
     openAlertDialogDescription: MutableState<Boolean>,
     interactionSource: MutableInteractionSource
 ){
@@ -552,7 +553,7 @@ fun pickDescription(
 }
 
 @Composable
-fun pickLocation(
+fun CalendarBottomSheetEventLocation(
     openAlertDialogLocation: MutableState<Boolean>,
     interactionSource: MutableInteractionSource
 ){
@@ -581,7 +582,7 @@ fun pickLocation(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun button(
+fun CalendarBottomSheetButtons(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM

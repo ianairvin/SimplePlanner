@@ -1,5 +1,6 @@
 package ru.simpleplanner.presentation.event_screen
 
+import android.annotation.SuppressLint
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -18,6 +19,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.TimeZone
 
+@SuppressLint("MutableCollectionMutableState")
 @HiltViewModel
 class EventVM @Inject constructor(
     private val deleteEventUseCase: DeleteEventUseCase,
@@ -63,7 +65,7 @@ class EventVM @Inject constructor(
     val repeatRuleForBottomSheet =  mutableStateOf(arrayOf("Нет", ""))
     val descriptionForBottomSheet = mutableStateOf("")
     val pickedDateForBottomSheet =  mutableStateOf(LocalDate.now())
-    val idEventForBottomSheet =  mutableStateOf("")
+    private val idEventForBottomSheet =  mutableStateOf("")
 
     val updaterBottomSheet = mutableStateOf(false)
 
@@ -75,6 +77,7 @@ class EventVM @Inject constructor(
         eventsList.value = getEventsUseCase(selectedDate.value, selectedCalendarsId.value)
     }
 
+    @SuppressLint("AutoboxingStateValueProperty")
     fun newEventForBottomSheet(){
         calendarIdForBottomSheet.value =
             if(calendarsList.value.isNotEmpty()){
@@ -95,6 +98,7 @@ class EventVM @Inject constructor(
         updaterBottomSheet.value = false
     }
 
+    @SuppressLint("AutoboxingStateValueProperty")
     fun pickedEventForBottomSheet(id: String, calendarId: String, start: LocalDateTime, end: LocalDateTime){
         val event = getOneEventUseCase(id, calendarId, start, end)
         calendarIdForBottomSheet.value = event.calendarId
@@ -116,6 +120,7 @@ class EventVM @Inject constructor(
         updaterBottomSheet.value = true
     }
 
+    @SuppressLint("AutoboxingStateValueProperty")
     fun saveOrUpdateEvent() {
         val startDateTime =
             pickedDateForBottomSheet.value.atStartOfDay()

@@ -7,7 +7,7 @@ import javax.inject.Inject
 class EditStatusTaskUseCase @Inject constructor(
     private val taskRepository : TaskRepository
 ) {
-    operator suspend fun invoke(id: Int, check: Boolean) {
+    suspend operator fun invoke(id: Int, check: Boolean) {
         return taskRepository.editStatusTasks(id, check)
     }
 }

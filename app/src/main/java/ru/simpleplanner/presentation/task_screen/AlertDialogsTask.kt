@@ -28,15 +28,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import ru.simpleplanner.presentation.event_screen.EventVM
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun repeatRuleForTask(
+fun TaskAlertDialogRepeatRule(
     openAlertDialog: MutableState<Boolean>,
     taskVM: TaskVM
 ){
-    var repeatRuleTemporal = remember {
+    val repeatRuleTemporal = remember {
         mutableStateOf(taskVM.repeatRuleForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
@@ -90,7 +89,7 @@ fun repeatRuleForTask(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun noteForTask(
+fun TaskAlertDialogNote(
     openAlertDialogNote: MutableState<Boolean>,
     taskVM: TaskVM
 ){

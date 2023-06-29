@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun calendarsForList(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
+fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
     }) {
@@ -79,13 +79,13 @@ fun calendarsForList(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun calendarForEvent(
+fun CalendarAlertDialogListCalendarsForEvent(
     openAlertDialog: MutableState<Boolean>,
     eventVM: EventVM
 ){
-    var calendarNameTemporal = remember {
+    val calendarNameTemporal = remember {
         mutableStateOf(eventVM.calendarDisplayNameForBottomSheet.value)}
-    var calendarIdTemporal = remember {
+    val calendarIdTemporal = remember {
         mutableStateOf(eventVM.calendarIdForBottomSheet.value)}
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
@@ -148,7 +148,7 @@ fun calendarForEvent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun descriptionForEvent(
+fun CalendarAlertDialogEventDescription(
     openAlertDialogDescription: MutableState<Boolean>,
     eventVM: EventVM
 ){
@@ -198,11 +198,11 @@ fun descriptionForEvent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun repeatRuleForEvent(
+fun CalendarAlertDialogEventRepeatRule(
     openAlertDialogCalendars: MutableState<Boolean>,
     eventVM: EventVM
 ){
-    var repeatRuleTemporal = remember {
+    val repeatRuleTemporal = remember {
         mutableStateOf(eventVM.repeatRuleForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialogCalendars.value = false
@@ -256,14 +256,14 @@ fun repeatRuleForEvent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun locationForEvent(
-    openAlertDialogDescription: MutableState<Boolean>,
+fun CalendarAlertDialogEventLocation(
+    openAlertDialog: MutableState<Boolean>,
     eventVM: EventVM
 ){
     val locationTemporal = remember {
         mutableStateOf(eventVM.locationForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
-        openAlertDialogDescription.value = false
+        openAlertDialog.value = false
         locationTemporal.value = eventVM.locationForBottomSheet.value
     }) {
         Surface(
@@ -292,7 +292,7 @@ fun locationForEvent(
                 Spacer(modifier = Modifier.height(24.dp))
                 TextButton(
                     onClick = {
-                        openAlertDialogDescription.value = false
+                        openAlertDialog.value = false
                         eventVM.locationForBottomSheet.value = locationTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)

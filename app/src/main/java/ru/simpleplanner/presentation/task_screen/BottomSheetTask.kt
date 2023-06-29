@@ -1,18 +1,14 @@
 package ru.simpleplanner.presentation.task_screen
 
-import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -25,7 +21,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -38,9 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vanpra.composematerialdialogs.MaterialDialog
@@ -50,22 +43,6 @@ import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import ru.simpleplanner.presentation.event_screen.EventVM
-import ru.simpleplanner.presentation.event_screen.button
-import ru.simpleplanner.presentation.event_screen.calendarForEvent
-import ru.simpleplanner.presentation.event_screen.dateAndTimeEvent
-import ru.simpleplanner.presentation.event_screen.descriptionForEvent
-import ru.simpleplanner.presentation.event_screen.locationForEvent
-import ru.simpleplanner.presentation.event_screen.pickAllDay
-import ru.simpleplanner.presentation.event_screen.pickCalendar
-import ru.simpleplanner.presentation.event_screen.pickDate
-import ru.simpleplanner.presentation.event_screen.pickDescription
-import ru.simpleplanner.presentation.event_screen.pickEndTime
-import ru.simpleplanner.presentation.event_screen.pickLocation
-import ru.simpleplanner.presentation.event_screen.pickRepeatRule
-import ru.simpleplanner.presentation.event_screen.pickStartTime
-import ru.simpleplanner.presentation.event_screen.repeatRuleForEvent
-import ru.simpleplanner.presentation.event_screen.titleEvent
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -73,7 +50,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun bottomSheetTask(
+fun TaskBottomSheet(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     taskVM: TaskVM
@@ -83,9 +60,9 @@ fun bottomSheetTask(
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = colorScheme.background,
         sheetShadowElevation = 0.dp,
-        sheetContent = { bottomSheetContentTask(
+        sheetContent = { TaskBottomSheetContent(
             scope,
             scaffoldState,
             taskVM,
@@ -95,17 +72,17 @@ fun bottomSheetTask(
     ){}
 
     if(openAlertDialogRepeatRule.value) {
-        repeatRuleForTask(openAlertDialogRepeatRule, taskVM)
+        TaskAlertDialogRepeatRule(openAlertDialogRepeatRule, taskVM)
     }
 
     if(openAlertDialogNote.value) {
-        noteForTask(openAlertDialogNote, taskVM)
+        TaskAlertDialogNote(openAlertDialogNote, taskVM)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun bottomSheetContentTask(
+fun TaskBottomSheetContent(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     taskVM: TaskVM,
@@ -122,23 +99,21 @@ fun bottomSheetContentTask(
             .fillMaxWidth()
             .padding(32.dp, 0.dp, 32.dp, 0.dp)
     ){
-        titleTask(taskVM)
-     //   Spacer(modifier = Modifier.padding(8.dp))
-    //    pickWithoutDate(taskVM)
+        TaskBottomSheetTitle(taskVM)
         Spacer(modifier = Modifier.padding(8.dp))
-        dateTask(dateDialogState, taskVM, interactionSource)
+        TaskBottomSheetDate(dateDialogState, taskVM, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickRepeatRule(taskVM, openAlertDialogRepeatRule, interactionSource)
+        TaskBottomSheetRepeatRule(taskVM, openAlertDialogRepeatRule, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        pickNote(openAlertDialogNote, interactionSource)
+        TaskBottomSheetNote(openAlertDialogNote, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        button(scope, scaffoldState, taskVM)
+        TaskBottomSheetButtons(scope, scaffoldState, taskVM)
     }
-    pickDate(dateDialogState, taskVM)
+    TaskBottomSheetDatePicker(dateDialogState, taskVM)
 }
 
 @Composable
-fun titleTask(taskVM: TaskVM){
+fun TaskBottomSheetTitle(taskVM: TaskVM){
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,7 +130,7 @@ fun titleTask(taskVM: TaskVM){
 }
 
 @Composable
-fun pickWithoutDate(
+fun TaskBottomSheetWithoutDate(
     taskVM: TaskVM
 ){
     Row(modifier = Modifier
@@ -186,7 +161,7 @@ fun pickWithoutDate(
     }
 }
 @Composable
-fun dateTask(
+fun TaskBottomSheetDate(
     dateDialogState: MaterialDialogState,
     taskVM: TaskVM,
     interactionSource: MutableInteractionSource
@@ -235,7 +210,7 @@ fun dateTask(
 }
 
 @Composable
-fun pickNote(
+fun TaskBottomSheetNote(
     openAlertDialogNote: MutableState<Boolean>,
     interactionSource: MutableInteractionSource
 ){
@@ -263,7 +238,7 @@ fun pickNote(
 }
 
 @Composable
-fun pickRepeatRule(
+fun TaskBottomSheetRepeatRule(
     taskVM: TaskVM,
     openAlertDialogRepeatRule: MutableState<Boolean>,
     interactionSource: MutableInteractionSource
@@ -273,31 +248,40 @@ fun pickRepeatRule(
             text = "Повтор",
             modifier = Modifier
                 .weight(5f),
-            textAlign = TextAlign.Start
+            textAlign = TextAlign.Start,
+            color = if(taskVM.withoutDateForBottomSheet.value) Color.Gray else colorScheme.onBackground
         )
         Spacer(modifier = Modifier.padding(2.dp))
-        Row( modifier = Modifier
-            .weight(6f)
-            .clickable(
-                interactionSource = interactionSource,
-                onClick = { openAlertDialogRepeatRule.value = true },
-                indication = null
-            ),
-            horizontalArrangement = Arrangement.End) {
+        Row( modifier = if(taskVM.withoutDateForBottomSheet.value) {
+                Modifier.weight(6f)
+            } else {
+                Modifier
+                    .weight(6f)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        onClick = { openAlertDialogRepeatRule.value = true },
+                        indication = null
+                    )
+            },
+            horizontalArrangement = Arrangement.End)
+             {
             Text(
-                text = taskVM.repeatRuleForBottomSheet.value[0],
-                textAlign = TextAlign.End
+                text = if (taskVM.withoutDateForBottomSheet.value) "Нет" else
+                    taskVM.repeatRuleForBottomSheet.value[0],
+                textAlign = TextAlign.End,
+                color = if(taskVM.withoutDateForBottomSheet.value) Color.Gray else colorScheme.onBackground
             )
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowRight,
-                contentDescription = "Choose repeat"
+                contentDescription = "Choose repeat",
+                tint = if(taskVM.withoutDateForBottomSheet.value) Color.Gray else colorScheme.onBackground
             )
         }
     }
 }
 
 @Composable
-fun pickDate(
+fun TaskBottomSheetDatePicker(
     dateDialogState: MaterialDialogState,
     taskVM: TaskVM
 ){
@@ -305,7 +289,7 @@ fun pickDate(
                                 else taskVM.dateForBottomSheet.value
     MaterialDialog(
         dialogState = dateDialogState,
-        backgroundColor = MaterialTheme.colorScheme.background,
+        backgroundColor = colorScheme.background,
         buttons = {
             positiveButton(text = "ОК") {
                 taskVM.dateForBottomSheet.value = pickedDateTemporal
@@ -319,24 +303,24 @@ fun pickDate(
             title = "",
             locale = Locale("ru"),
             colors = DatePickerDefaults.colors(
-                dateActiveBackgroundColor = MaterialTheme.colorScheme.primary,
-                dateInactiveTextColor = MaterialTheme.colorScheme.onBackground,
-                headerBackgroundColor = MaterialTheme.colorScheme.primary,
-                headerTextColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onPrimary,
-                calendarHeaderTextColor = MaterialTheme.colorScheme.onBackground,
-                dateActiveTextColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onPrimary,
+                dateActiveBackgroundColor = colorScheme.primary,
+                dateInactiveTextColor = colorScheme.onBackground,
+                headerBackgroundColor = colorScheme.primary,
+                headerTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
+                calendarHeaderTextColor = colorScheme.onBackground,
+                dateActiveTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
             )
         ) {
             pickedDateTemporal = it
         }
-        pickWithoutDate(taskVM = taskVM)
+        TaskBottomSheetWithoutDate(taskVM = taskVM)
     }
 }
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun button(
+fun TaskBottomSheetButtons(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     taskVM: TaskVM
@@ -353,8 +337,8 @@ fun button(
                     .weight(1f),
                 shape = RoundedCornerShape(36.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    containerColor = colorScheme.errorContainer,
+                    contentColor = colorScheme.onErrorContainer
                 ),
                 onClick = {
                     taskVM.deleteTask()
@@ -378,7 +362,7 @@ fun button(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = colorScheme.primary,
                     contentColor = md_theme_light_onPrimary
                 )
             ) {
@@ -397,7 +381,7 @@ fun button(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = colorScheme.primary,
                     contentColor = md_theme_light_onPrimary
                 )
             ) {
