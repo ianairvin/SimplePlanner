@@ -154,7 +154,7 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowLeft,
                 contentDescription = "Choose break",
-                modifier = if(!timerVM.start.value){
+                modifier = if(!timerVM.isTimerRunning.value){
                     Modifier.clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -162,7 +162,7 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
                 } else {
                     Modifier
                 },
-                tint = if(timerVM.start.value) colorScheme.background else colorScheme.onBackground
+                tint = if(timerVM.isTimerRunning.value) colorScheme.background else colorScheme.onBackground
             )
             Text(
                 text = if (timerVM.isShortRest.value) "короткий перерыв" else "длинный перерыв"
@@ -170,7 +170,7 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowRight,
                 contentDescription = "Choose break",
-                modifier = if(!timerVM.start.value){
+                modifier = if(!timerVM.isTimerRunning.value){
                     Modifier.clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -178,7 +178,7 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
                 } else {
                     Modifier
                 },
-                tint = if(timerVM.start.value) colorScheme.background else colorScheme.onBackground
+                tint = if(timerVM.isTimerRunning.value) colorScheme.background else colorScheme.onBackground
             )
         }
     }
@@ -193,7 +193,7 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
         Icon(
             imageVector = Icons.Outlined.KeyboardArrowLeft,
             contentDescription = "Choose time",
-            modifier = if(!timerVM.start.value){
+            modifier = if(!timerVM.isTimerRunning.value){
                 Modifier.clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -202,11 +202,11 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
             } else {
                 Modifier
             },
-            tint = if(timerVM.start.value) colorScheme.background else colorScheme.onBackground
+            tint = if(timerVM.isTimerRunning.value) colorScheme.background else colorScheme.onBackground
         )
         Spacer(modifier = Modifier.padding(8.dp))
         Text(
-            text = timerVM.time.value,
+            text = timerVM.timeTitleScreen.value,
             textAlign = TextAlign.Center,
             fontSize = 64.sp,
             fontWeight = W700
@@ -215,7 +215,7 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
         Icon(
             imageVector = Icons.Outlined.KeyboardArrowRight,
             contentDescription = "Choose time",
-            modifier = if(!timerVM.start.value){
+            modifier = if(!timerVM.isTimerRunning.value){
                 Modifier.clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -224,7 +224,7 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
             } else {
                 Modifier
             },
-            tint = if(timerVM.start.value) colorScheme.background else colorScheme.onBackground
+            tint = if(timerVM.isTimerRunning.value) colorScheme.background else colorScheme.onBackground
         )
     }
 }
@@ -236,18 +236,18 @@ fun TimerButtons(timerVM: TimerVM) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (timerVM.start.value) {
+        if (timerVM.isTimerRunning.value) {
             Button(
                 modifier = Modifier
                     .height(48.dp)
-                    .width(120.dp),
+                    .width(132.dp),
                 shape = RoundedCornerShape(36.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colorScheme.errorContainer,
                     contentColor = colorScheme.onErrorContainer
                 ),
                 onClick = {
-
+                    timerVM.resetTimer()
                 }
             ) {
                 Text(text = "Сброс")
@@ -256,26 +256,38 @@ fun TimerButtons(timerVM: TimerVM) {
             Button(
                 modifier = Modifier
                     .height(48.dp)
-                    .width(120.dp),
+                    .width(132.dp),
                 shape = RoundedCornerShape(36.dp),
                 onClick = {
-                    timerVM.start.value = false
+                    if (timerVM.isTimerOnPause.value) {
+                        timerVM.startTimer()
+                    } else {
+                        timerVM.pauseTimer()
+                    }
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray,
-                    contentColor = md_theme_light_onPrimary
-                )
+                colors = if (timerVM.isTimerOnPause.value) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = colorScheme.primary,
+                        contentColor = md_theme_light_onPrimary
+                    )
+                } else {
+                    ButtonDefaults.buttonColors(
+                        containerColor = Color.Gray,
+                        contentColor = md_theme_light_onPrimary
+                    )
+                }
             ) {
-                Text(text = "Пауза")
+                Text(text = if (timerVM.isTimerOnPause.value) "Возобновить" else "Пауза")
             }
         } else {
             Button(
                 modifier = Modifier
                     .height(48.dp)
-                    .width(120.dp),
+                    .width(132.dp),
                 shape = RoundedCornerShape(36.dp),
                 onClick = {
-                    timerVM.start.value = true
+                    timerVM.isTimerRunning.value = true
+                    timerVM.startTimer(300000)
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colorScheme.primary,

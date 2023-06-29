@@ -114,7 +114,6 @@ class MainActivity : ComponentActivity(
             }
         }
     }
-
     @Composable
     fun UiController(darkTheme: Boolean){
         val systemUiController = rememberSystemUiController()
