@@ -1,5 +1,6 @@
 package ru.simpleplanner.presentation.timer_screen
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -15,13 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -29,10 +27,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,17 +47,10 @@ import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
 
 @Composable
 fun TimerActivity(timerVM: TimerVM, onClickCalendar: () -> Unit, onClickTask: () -> Unit) {
-
-    val openAlertDialogTimerSettings = remember { mutableStateOf(false) }
-    if (openAlertDialogTimerSettings.value) {
-        TimerSettingsAlertDialog(openAlertDialogTimerSettings, timerVM)
-    }
-
     ScaffoldTimer(
         timerVM,
         onClickCalendar,
         onClickTask,
-        openAlertDialogTimerSettings
     )
 }
 
@@ -71,11 +59,9 @@ private fun ScaffoldTimer(
     timerVM: TimerVM,
     onClickCalendar: () -> Unit,
     onClickTimer: () -> Unit,
-    openAlertDialogTimerSettings: MutableState<Boolean>
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        topBar = { TimerSettingsTopBar(openAlertDialogTimerSettings) },
         bottomBar = { TimerNavigationBar(onClickCalendar, onClickTimer) },
         containerColor = colorScheme.background
     ) { contentPadding ->
@@ -100,11 +86,12 @@ fun TimerScreenContent(timerVM: TimerVM){
     TimerButtons(timerVM)
 }
 
+@SuppressLint("AutoboxingStateValueProperty")
 @Composable
 fun TimerSwitchWorkOrRest(timerVM: TimerVM){
     val cornerRadius = 100
     Row(
-        modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 40.dp)
+        modifier = Modifier.padding(0.dp, 80.dp, 0.dp, 40.dp)
     ){
         OutlinedButton(
             shape = RoundedCornerShape(
@@ -120,7 +107,15 @@ fun TimerSwitchWorkOrRest(timerVM: TimerVM){
                 containerColor = colorScheme.background,
                 contentColor = colorScheme.onBackground
             )} ,
-            onClick = { timerVM.isWorkScreen.value = true }
+            onClick = {
+                if(!timerVM.isTimerRunning.value) {
+                    timerVM.isWorkScreen.value = true
+                    timerVM.currentTimeMode = timerVM.timeDefaultWork
+                    val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
+                    val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
+                    timerVM.timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
+                }
+            }
         ) {
             Text("Работа")
         }
@@ -138,13 +133,22 @@ fun TimerSwitchWorkOrRest(timerVM: TimerVM){
                 containerColor = colorScheme.background,
                 contentColor = colorScheme.onBackground
             )},
-            onClick = { timerVM.isWorkScreen.value = false }
+            onClick = {
+                if(!timerVM.isTimerRunning.value) {
+                    timerVM.isWorkScreen.value = false
+                    timerVM.currentTimeMode = timerVM.timeDefaultShortRest
+                    val minutes = ((timerVM.timeDefaultShortRest.value / 1000) / 60)
+                    val seconds = ((timerVM.timeDefaultShortRest.value / 1000) % 60)
+                    timerVM.timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
+                }
+            }
         ) {
             Text("Отдых")
         }
     }
 }
 
+@SuppressLint("AutoboxingStateValueProperty")
 @Composable
 fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInteractionSource){
     Row (
@@ -158,7 +162,16 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
                     Modifier.clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = { timerVM.isShortRest.value = !timerVM.isShortRest.value })
+                    onClick = {
+                        timerVM.isShortRest.value = !timerVM.isShortRest.value
+                        timerVM.currentTimeMode =
+                            if (timerVM.isShortRest.value) timerVM.timeDefaultShortRest
+                            else timerVM.timeDefaultLongRest
+                        val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
+                        val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
+                        timerVM.timeTitleScreen.value =
+                            String.format("%02d:%02d", minutes, seconds)
+                    })
                 } else {
                     Modifier
                 },
@@ -174,7 +187,16 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
                     Modifier.clickable(
                         interactionSource = interactionSource,
                         indication = null,
-                        onClick = { timerVM.isShortRest.value = !timerVM.isShortRest.value })
+                        onClick = {
+                            timerVM.isShortRest.value = !timerVM.isShortRest.value
+                            timerVM.currentTimeMode =
+                                if (timerVM.isShortRest.value) timerVM.timeDefaultShortRest
+                                else timerVM.timeDefaultLongRest
+                            val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
+                            val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
+                            timerVM.timeTitleScreen.value =
+                                String.format("%02d:%02d", minutes, seconds)
+                        })
                 } else {
                     Modifier
                 },
@@ -197,7 +219,13 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
                 Modifier.clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = { })
+                    onClick = {
+                        timerVM.currentTimeMode.value -=
+                            if(timerVM.currentTimeMode.value > 60000) 60000 else 0
+                        val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
+                        val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
+                        timerVM.timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
+                    })
                     .height(36.dp).width(36.dp)
             } else {
                 Modifier
@@ -219,7 +247,13 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
                 Modifier.clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = {  })
+                    onClick = {
+                        timerVM.currentTimeMode.value +=
+                            if(timerVM.currentTimeMode.value < 3600000) 60000 else 0
+                        val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
+                        val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
+                        timerVM.timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
+                    })
                     .height(36.dp).width(36.dp)
             } else {
                 Modifier
@@ -229,6 +263,7 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
     }
 }
 
+@SuppressLint("AutoboxingStateValueProperty")
 @Composable
 fun TimerButtons(timerVM: TimerVM) {
     Row(
@@ -287,7 +322,12 @@ fun TimerButtons(timerVM: TimerVM) {
                 shape = RoundedCornerShape(36.dp),
                 onClick = {
                     timerVM.isTimerRunning.value = true
-                    timerVM.startTimer(300000)
+                    if(!timerVM.isTimerOnPause.value) {
+                        if(timerVM.isWorkScreen.value) timerVM.timeLeft.value = timerVM.timeDefaultWork.value
+                        else if (timerVM.isShortRest.value) timerVM.timeLeft.value = timerVM.timeDefaultShortRest.value
+                        else timerVM.timeLeft.value = timerVM.timeDefaultLongRest.value
+                    }
+                    timerVM.startTimer()
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colorScheme.primary,
@@ -298,21 +338,6 @@ fun TimerButtons(timerVM: TimerVM) {
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TimerSettingsTopBar(openAlertDialogTimerSettings: MutableState<Boolean>) {
-    TopAppBar(
-        title = {},
-        colors =  TopAppBarDefaults.topAppBarColors(Color.Transparent),
-        actions = {
-            IconButton(onClick = { openAlertDialogTimerSettings.value = true })
-            {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
-            }
-        }
-    )
 }
 
 @Composable

@@ -114,6 +114,11 @@ class MainActivity : ComponentActivity(
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        timerVM.saveTime()
+    }
     @Composable
     fun UiController(darkTheme: Boolean){
         val systemUiController = rememberSystemUiController()

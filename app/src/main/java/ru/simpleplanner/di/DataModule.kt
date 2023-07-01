@@ -9,10 +9,14 @@ import dagger.hilt.components.SingletonComponent
 import ru.simpleplanner.data.repository.CalendarRepositoryImpl
 import ru.simpleplanner.data.repository.EventRepositoryImpl
 import ru.simpleplanner.data.repository.TaskRepositoryImpl
+import ru.simpleplanner.data.repository.TimerRepositoryImpl
+import ru.simpleplanner.data.room.Dao
 import ru.simpleplanner.data.room.DataBase
+import ru.simpleplanner.data.room.InitializeDB
 import ru.simpleplanner.domain.repository.CalendarRepository
 import ru.simpleplanner.domain.repository.EventRepository
 import ru.simpleplanner.domain.repository.TaskRepository
+import ru.simpleplanner.domain.repository.TimerRepository
 import javax.inject.Singleton
 
 @Module
@@ -37,12 +41,18 @@ class DataModule {
             app,
             DataBase::class.java,
             DataBase.DB_NAME
-        ).build()
+        ).addCallback(InitializeDB()).build()
     }
 
     @Provides
     @Singleton
     fun provideTaskRepository(db: DataBase) : TaskRepository {
         return TaskRepositoryImpl(db.dao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTimerRepository(db: DataBase) : TimerRepository {
+        return TimerRepositoryImpl(db.dao)
     }
 }

@@ -38,7 +38,7 @@ class TaskRepositoryImpl @Inject constructor (
             task.repeatRule!!,
             task.note!!
         )
-        dao.insert(taskDB)
+        dao.insertTask(taskDB)
     }
 
     override suspend fun updateTask(task: Task){
@@ -53,11 +53,11 @@ class TaskRepositoryImpl @Inject constructor (
             task.repeatRule!!,
             task.note!!
         )
-        dao.update(taskDB)
+        dao.updateTask(taskDB)
     }
 
     override suspend fun getOneTask(id: Int): Task {
-        val taskDB = dao.getById(id)
+        val taskDB = dao.getByIdTask(id)
         val date: LocalDate =
             when(taskDB.repeatRule) {
                 "DAILY" -> LocalDate.now()
@@ -81,11 +81,11 @@ class TaskRepositoryImpl @Inject constructor (
     override fun getTasks(period: String): Flow<List<Task>> {
         val listTasksBeforeMapping : Flow<List<TaskDB>>
         if(period == "Today"){
-            listTasksBeforeMapping = dao.getToday(LocalDate.now().atStartOfDay().
+            listTasksBeforeMapping = dao.getTodayTask(LocalDate.now().atStartOfDay().
             atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
                 LocalDate.now().dayOfWeek.value)
         } else if (period == "Tomorrow"){
-            listTasksBeforeMapping = dao.getTomorrow(LocalDate.now().plusDays(1)
+            listTasksBeforeMapping = dao.getTomorrowTask(LocalDate.now().plusDays(1)
                 .atStartOfDay().atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
                 LocalDate.now().plusDays(1).dayOfWeek.value)
         } else if (period == "Week") {
@@ -102,7 +102,7 @@ class TaskRepositoryImpl @Inject constructor (
                     arrayOf(0)
                 }
             }
-            listTasksBeforeMapping = dao.getWeek(
+            listTasksBeforeMapping = dao.getWeekTask(
                 LocalDate.now().plusDays(1).atStartOfDay().atZone(ZoneOffset.systemDefault())
                     .toInstant().toEpochMilli(),
                 dayThroughTheWeek.atStartOfDay().atZone(ZoneOffset.systemDefault())
@@ -110,7 +110,7 @@ class TaskRepositoryImpl @Inject constructor (
                 daysOfWeek
             )
         } else {
-            listTasksBeforeMapping = dao.getSomeDay()
+            listTasksBeforeMapping = dao.getSomeDayTask()
         }
 
         val listTasksAfterMapping : Flow<List<Task>> = listTasksBeforeMapping.map {
@@ -131,10 +131,10 @@ class TaskRepositoryImpl @Inject constructor (
     }
 
     override suspend fun editStatusTasks(id: Int, check: Boolean) {
-        dao.changeStatus(id, check)
+        dao.changeStatusTask(id, check)
     }
 
     override suspend fun deleteTask(id: Int) {
-        dao.delete(id)
+        dao.deleteTask(id)
     }
 }

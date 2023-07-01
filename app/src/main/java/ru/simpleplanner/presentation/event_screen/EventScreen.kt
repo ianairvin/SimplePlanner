@@ -78,7 +78,8 @@ fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () ->
     val permissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.READ_CALENDAR,
-            Manifest.permission.WRITE_CALENDAR
+            Manifest.permission.WRITE_CALENDAR,
+            Manifest.permission.VIBRATE
         )
     )
     val openAlertDialog = remember { mutableStateOf(false) }
