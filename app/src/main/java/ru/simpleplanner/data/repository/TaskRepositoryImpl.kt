@@ -109,8 +109,11 @@ class TaskRepositoryImpl @Inject constructor (
                     .toInstant().toEpochMilli(),
                 daysOfWeek
             )
-        } else {
+        } else if (period == "SomeDay"){
             listTasksBeforeMapping = dao.getSomeDayTask()
+        } else {
+            listTasksBeforeMapping = dao.getDoneTask(LocalDate.now().atStartOfDay().atZone(ZoneOffset.systemDefault())
+                .toInstant().toEpochMilli())
         }
 
         val listTasksAfterMapping : Flow<List<Task>> = listTasksBeforeMapping.map {
@@ -119,7 +122,8 @@ class TaskRepositoryImpl @Inject constructor (
                     task.id,
                     task.title,
                     task.check,
-                    null,
+                    Instant.ofEpochMilli(task.date)
+                    .atZone(ZoneId.systemDefault()).toLocalDate(),
                     null,
                     null,
                     null
@@ -136,5 +140,25 @@ class TaskRepositoryImpl @Inject constructor (
 
     override suspend fun deleteTask(id: Int) {
         dao.deleteTask(id)
+    }
+
+    override suspend fun getTasksForSpecificDay(date: LocalDate): List<Task> {
+        val dateLong = date.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli()
+        val dayOfWeekInt = date.dayOfWeek.value
+        val listTasksBeforeMapping = dao.getTasksForSpecificDay(dateLong, dayOfWeekInt)
+        val listTasksAfterMapping : List<Task> = listTasksBeforeMapping.map {
+                task -> Task(
+                        task.id,
+                        task.title,
+                        task.check,
+                        Instant.ofEpochMilli(task.date)
+                            .atZone(ZoneId.systemDefault()).toLocalDate(),
+                        null,
+                        null,
+                        null
+                    )
+                }
+
+        return listTasksAfterMapping
     }
 }

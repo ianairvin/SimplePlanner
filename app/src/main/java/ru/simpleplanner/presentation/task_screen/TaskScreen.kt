@@ -1,6 +1,7 @@
 package ru.simpleplanner.presentation.task_screen
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -40,6 +41,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontWeight.Companion.W500
+import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,6 +52,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ru.simpleplanner.R
 import ru.simpleplanner.domain.entities.Task
+import java.time.LocalDate
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,6 +104,7 @@ private fun TaskScaffold(
                 taskVM.tasksListTomorrow.collectAsState(initial = emptyList()),
                 taskVM.tasksListWeek.collectAsState(initial = emptyList()),
                 taskVM.tasksListSomeDay.collectAsState(initial = emptyList()),
+                taskVM.tasksListDone.collectAsState(initial = emptyList()),
                 scope,
                 bottomSheetScaffoldState
             )
@@ -117,6 +122,7 @@ fun TaskScreenContent(
     tasksListTomorrow: State<List<Task>>,
     tasksListWeek: State<List<Task>>,
     tasksListSomeDay: State<List<Task>>,
+    tasksListDone: State<List<Task>>,
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState
 ) {
@@ -124,6 +130,7 @@ fun TaskScreenContent(
     val tomorrowListOpen = remember { mutableStateOf(false) }
     val weekListOpen = remember { mutableStateOf(false) }
     val someDayListOpen = remember { mutableStateOf(false) }
+    val doneListOpen = remember { mutableStateOf(false) }
 
     val interactionSource = MutableInteractionSource()
 
@@ -168,6 +175,16 @@ fun TaskScreenContent(
             itemsIndexed(tasksListSomeDay.value.sortedBy { it.makeDateTime })
             { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
         } else if (someDayListOpen.value){
+            item { NoTasksMessage() }
+        }
+
+        item {
+            TitleSectionTaskScreen(doneListOpen, "Выполненные", interactionSource)
+        }
+        if (doneListOpen.value && tasksListDone.value.isNotEmpty()) {
+            itemsIndexed(tasksListDone.value.sortedBy { it.makeDateTime })
+            { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
+        } else if (doneListOpen.value) {
             item { NoTasksMessage() }
         }
     }
@@ -250,8 +267,8 @@ fun ListTasks(
                         checkedState.value = !checkedState.value
                         taskVM.editStatus(item.id!!, checkedState.value)
                     }
-                    .height(20.dp)
-                    .width(20.dp),
+                    .height(16.dp)
+                    .width(16.dp),
                 tint = Color.Gray
             )
         } else {
@@ -263,8 +280,8 @@ fun ListTasks(
                         checkedState.value = !checkedState.value
                         taskVM.editStatus(item.id!!, checkedState.value)
                     }
-                    .height(20.dp)
-                    .width(20.dp),
+                    .height(16.dp)
+                    .width(16.dp)
             )
         }
 
@@ -284,7 +301,10 @@ fun ListTasks(
                 },
                 indication = null
             ),
-            color = if(item.check) Color.Gray else colorScheme.onBackground
+            fontWeight = W600,
+            color = if(item.check) Color.Gray
+            else if ((item.date ?: LocalDate.now().plusDays(1)) < LocalDate.now()) colorScheme.error
+            else colorScheme.onBackground
         )
     }
 }

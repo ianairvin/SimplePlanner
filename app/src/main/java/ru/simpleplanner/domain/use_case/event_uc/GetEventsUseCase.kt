@@ -9,7 +9,7 @@ import javax.inject.Inject
 class GetEventsUseCase @Inject constructor(
         private val eventRepository : EventRepository,
     ) {
-    operator fun invoke(date: LocalDate, calendarsId: ArrayList<String>) : List<Event> {
+    suspend operator fun invoke(date: LocalDate, calendarsId: List<String>) : List<Event> {
         return eventRepository.getEvents(date, calendarsId)
     }
 }

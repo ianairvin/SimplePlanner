@@ -10,7 +10,7 @@ import javax.inject.Inject
 class GetOneEventUseCase @Inject constructor(
     private val eventRepository : EventRepository,
 ) {
-    operator fun invoke(id: String, calendarId: String, startDay: LocalDateTime, endDay: LocalDateTime
+    suspend operator fun invoke(id: String, calendarId: String, startDay: LocalDateTime, endDay: LocalDateTime
     ) : Event {
         return eventRepository.getOneEvent(id, calendarId, startDay, endDay)
     }

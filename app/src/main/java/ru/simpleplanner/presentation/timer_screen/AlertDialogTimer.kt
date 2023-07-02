@@ -2,6 +2,7 @@ package ru.simpleplanner.presentation.timer_screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -43,18 +44,27 @@ fun TimerAlertDialogClearNumberOfRepeat(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Вы действительно хотите сбросить количество пройденных интервалов?",
+                    text = "Вы хотите сбросить количество пройденных интервалов?",
                     textAlign = TextAlign.Start
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                TextButton(
-                    onClick = {
-                        openAlertDialog.value = false
-                        timerVM.numberOfRepeats.value = 0
-                    },
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Да")
+                Row(modifier = Modifier.align(Alignment.End)) {
+                    TextButton(
+                        onClick = {
+                            openAlertDialog.value = false
+                            timerVM.numberOfRepeats.value = 0
+                        },
+                    ) {
+                        Text("Да")
+                    }
+                    TextButton(
+                        onClick = {
+                            openAlertDialog.value = false
+                        },
+
+                        ) {
+                        Text("Нет")
+                    }
                 }
             }
         }

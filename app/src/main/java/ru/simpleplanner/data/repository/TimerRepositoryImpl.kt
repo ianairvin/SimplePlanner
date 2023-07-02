@@ -1,8 +1,5 @@
 package ru.simpleplanner.data.repository
 
-import android.util.Log
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import ru.simpleplanner.data.room.Dao
 import ru.simpleplanner.data.room.TimerDB
 import ru.simpleplanner.domain.repository.TimerRepository

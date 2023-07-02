@@ -9,5 +9,7 @@ class InitializeDB : RoomDatabase.Callback() {
         super.onCreate(db)
         db.execSQL("INSERT INTO timer (id, timeWork, timeShortBreak, timeLongBreak, numberOfRepeats) " +
                 "values(1, 1500000, 300000, 900000, 0)")
+        db.execSQL("INSERT INTO picked_calendar (id) " +
+                "values(0)")
     }
 }

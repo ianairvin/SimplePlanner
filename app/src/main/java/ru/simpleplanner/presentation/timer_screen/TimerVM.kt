@@ -66,17 +66,6 @@ class TimerVM @Inject constructor(
     val timeTitleScreen = mutableStateOf("")
 
     val service = NotificationService(appContext)
-    init{
-        viewModelScope.launch {
-            timeDefaultWork.value = getTimeUseCase.getTimeWork()
-            timeDefaultShortRest.value = getTimeUseCase.getTimeShortBreak()
-            timeDefaultLongRest.value = getTimeUseCase.getTimeLongBreak()
-            numberOfRepeats.value = getTimeUseCase.getNumberOfRepeats()
-            val minutes = ((timeDefaultWork.value / 1000) / 60)
-            val seconds = ((timeDefaultWork.value / 1000) % 60)
-            timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
-        }
-    }
 
     @SuppressLint("AutoboxingStateValueProperty")
     fun startTimer(millis: Long = timeLeft.value) {
@@ -146,62 +135,15 @@ class TimerVM @Inject constructor(
         )
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun TaskAlertDialogRepeatRule(
-        openAlertDialog: MutableState<Boolean>,
-        taskVM: TaskVM
-    ){
-        val repeatRuleTemporal = remember {
-            mutableStateOf(taskVM.repeatRuleForBottomSheet.value) }
-        AlertDialog(onDismissRequest = {
-            openAlertDialog.value = false
-            repeatRuleTemporal.value = taskVM.repeatRuleForBottomSheet.value
-        }) {
-            Surface(
-                modifier = Modifier
-                    .width(360.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = AlertDialogDefaults.TonalElevation
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    val (selectedOption, onOptionSelected) = remember {
-                        mutableStateOf(repeatRuleTemporal.value)
-                    }
-                    taskVM.repeatRule.forEach { item ->
-                        Row(verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.selectableGroup()) {
-                            RadioButton(
-                                selected = (item.contentEquals(selectedOption)),
-                                onClick = {
-                                    onOptionSelected(item)
-                                    repeatRuleTemporal.value = item
-                                }
-                            )
-                            Text(
-                                modifier = Modifier.padding(start = 2.dp),
-                                text = item[0]
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    TextButton(
-                        onClick = {
-                            openAlertDialog.value = false
-                            taskVM.repeatRuleForBottomSheet.value = repeatRuleTemporal.value
-                        },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Применить")
-                    }
-                }
-            }
+    init{
+        viewModelScope.launch {
+            timeDefaultWork.value = getTimeUseCase.getTimeWork()
+            timeDefaultShortRest.value = getTimeUseCase.getTimeShortBreak()
+            timeDefaultLongRest.value = getTimeUseCase.getTimeLongBreak()
+            numberOfRepeats.value = getTimeUseCase.getNumberOfRepeats()
+            val minutes = ((timeDefaultWork.value / 1000) / 60)
+            val seconds = ((timeDefaultWork.value / 1000) % 60)
+            timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
         }
     }
-
 }

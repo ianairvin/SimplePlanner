@@ -9,6 +9,7 @@
 
 
     <application
+        android:windowSoftInputMode="adjustNothing"
         android:name=".SimplePlannerApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -22,7 +23,6 @@
         <activity
             android:name="ru.simpleplanner.presentation.MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.SimplePlanner">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

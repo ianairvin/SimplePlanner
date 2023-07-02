@@ -43,6 +43,7 @@ import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import ru.simpleplanner.presentation.event_screen.EventVM
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter

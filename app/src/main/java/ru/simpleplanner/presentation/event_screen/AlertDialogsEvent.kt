@@ -31,10 +31,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ru.simpleplanner.domain.entities.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>, eventVM: EventVM) {
+fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>,
+                                       eventVM: EventVM,
+                                       calendars: MutableState<List<Calendar>>) {
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
     }) {
@@ -50,7 +53,7 @@ fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>, e
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.Center
             ) {
-                eventVM.calendarsList.value.forEach { item ->
+                calendars.value.forEach { item ->
                     var checked by remember {
                         mutableStateOf(eventVM.selectedCalendarsId.value.contains(item.id))
                     }
@@ -64,6 +67,7 @@ fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>, e
                                 } else {
                                     eventVM.selectedCalendarsId.value.remove(item.id)
                                 }
+                                eventVM.getEvents()
                             }
                         )
                         Text(

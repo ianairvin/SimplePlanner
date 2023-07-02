@@ -7,7 +7,7 @@ import javax.inject.Inject
 class UpdateEventUseCase @Inject constructor(
     private val eventRepository : EventRepository
 ) {
-    operator fun invoke(event: Event){
+    suspend operator fun invoke(event: Event){
         return eventRepository.updateEvent(event)
     }
 }

@@ -4,11 +4,10 @@ import ru.simpleplanner.domain.entities.Calendar
 import ru.simpleplanner.domain.repository.CalendarRepository
 import javax.inject.Inject
 
-class GetCalendarsUseCase @Inject constructor(
+class GetPickedCalendarsUseCase @Inject constructor(
     private val calendarRepository : CalendarRepository
-    )
-{
-    suspend operator fun invoke() : List<Calendar> {
-        return calendarRepository.getCalendars()
+) {
+    suspend operator fun invoke(): List<String> {
+        return calendarRepository.getPickedCalendars()
     }
 }

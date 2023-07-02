@@ -105,7 +105,7 @@ fun TimerScreenContent(timerVM: TimerVM,
 fun TimerSwitchWorkOrRest(timerVM: TimerVM){
     val cornerRadius = 100
     Row(
-        modifier = Modifier.padding(0.dp, 80.dp, 0.dp, 40.dp)
+        modifier = Modifier.padding(0.dp, 60.dp, 0.dp, 20.dp)
     ){
         OutlinedButton(
             shape = RoundedCornerShape(

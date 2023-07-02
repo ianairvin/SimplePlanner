@@ -3,5 +3,4 @@
 
     <style name="Theme.SimplePlanner" parent="android:Theme.Material.Light.NoActionBar">
     </style>
-
 </resources>

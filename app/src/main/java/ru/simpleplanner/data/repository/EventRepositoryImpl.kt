@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ContentUris
 import android.content.ContentValues
 import android.provider.CalendarContract
+import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
 import ru.simpleplanner.domain.entities.Event
@@ -20,12 +21,12 @@ class EventRepositoryImpl @Inject constructor (
     private val appContext: Application
 ): EventRepository {
 
-    override fun deleteEvent(id: String) {
+    override suspend fun deleteEvent(id: String) {
         val deleteUri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id.toLong())
         appContext.contentResolver.delete(deleteUri, null, null)
     }
 
-    override fun getEvents(date: LocalDate, calendarsId: ArrayList<String>): List<Event> {
+    override suspend fun getEvents(date: LocalDate, calendarsId: List<String>): List<Event> {
         if(calendarsId.isNotEmpty()) {
             val events = arrayListOf<Event>()
             val startDay = date.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli()
@@ -116,7 +117,7 @@ class EventRepositoryImpl @Inject constructor (
         }
     }
 
-    override fun getOneEvent(
+    override suspend fun getOneEvent(
         id: String,
         calendarId: String,
         startDay: LocalDateTime,
@@ -150,7 +151,6 @@ class EventRepositoryImpl @Inject constructor (
 
         val selection = "${CalendarContract.Instances.EVENT_ID} = $id" +
                 " AND ${CalendarContract.Instances.CALENDAR_ID} = $calendarId"
-
         val eventUriBuilder = CalendarContract.Instances.CONTENT_URI
             .buildUpon()
         ContentUris.appendId(
@@ -167,6 +167,7 @@ class EventRepositoryImpl @Inject constructor (
             null,
             null
         )
+
         if (cursor != null) {
             cursor.moveToFirst()
 
@@ -210,7 +211,7 @@ class EventRepositoryImpl @Inject constructor (
         }
     }
 
-    override fun insertEvent(event: Event) {
+    override suspend fun insertEvent(event: Event) {
         val values: ContentValues
         var start = event.start.atZone(ZoneOffset.systemDefault())
             .toInstant().toEpochMilli()
@@ -254,11 +255,11 @@ class EventRepositoryImpl @Inject constructor (
                 put(CalendarContract.Events.EVENT_TIMEZONE, event.timeZone)
             }
         }
-
+        Log.i("qqqq", event.repeatRule.toString()?:"dkdk")
         appContext.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
     }
 
-    override fun updateEvent(event: Event) {
+    override suspend fun updateEvent(event: Event) {
         val values: ContentValues
         if (event.repeatRule != "") {
             val rRuleAttribute = event.repeatRule?.split("/")

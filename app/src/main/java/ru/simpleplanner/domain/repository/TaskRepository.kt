@@ -2,6 +2,7 @@ package ru.simpleplanner.domain.repository
 
 import kotlinx.coroutines.flow.Flow
 import ru.simpleplanner.domain.entities.Task
+import java.time.LocalDate
 
 interface TaskRepository {
     suspend fun insertTask(task: Task)
@@ -10,4 +11,6 @@ interface TaskRepository {
     fun getTasks(period: String) : Flow<List<Task>>
     suspend fun editStatusTasks(id: Int, check: Boolean)
     suspend fun deleteTask(id: Int)
+
+    suspend fun getTasksForSpecificDay(date: LocalDate) : List<Task>
 }

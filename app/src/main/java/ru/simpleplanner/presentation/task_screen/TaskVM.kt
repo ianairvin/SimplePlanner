@@ -32,6 +32,7 @@ class TaskVM @Inject constructor(
     var tasksListTomorrow = getTasksUseCase("Tomorrow")
     var tasksListWeek = getTasksUseCase("Week")
     var tasksListSomeDay = getTasksUseCase("SomeDay")
+    var tasksListDone = getTasksUseCase("Done")
 
     val titleForBottomSheet =  mutableStateOf("")
     val repeatRuleForBottomSheet =  mutableStateOf(arrayOf("Нет", ""))

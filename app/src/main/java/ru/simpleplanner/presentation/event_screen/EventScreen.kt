@@ -2,8 +2,10 @@ package ru.simpleplanner.presentation.event_screen
 
 import android.Manifest
 import android.graphics.Color.parseColor
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,7 +13,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -19,7 +20,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,6 +33,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -62,9 +65,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ru.simpleplanner.R
 import ru.simpleplanner.domain.entities.Event
+import ru.simpleplanner.domain.entities.Task
+import ru.simpleplanner.presentation.ui.theme.md_theme_dark_onBackground
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
-import ru.simpleplanner.presentation.ui.theme.neutral40
-import ru.simpleplanner.presentation.ui.theme.neutral60
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -75,16 +78,9 @@ import java.util.Locale
 @ExperimentalPermissionsApi
 @Composable
 fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () -> Unit) {
-    val permissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            Manifest.permission.READ_CALENDAR,
-            Manifest.permission.WRITE_CALENDAR,
-            Manifest.permission.VIBRATE
-        )
-    )
     val openAlertDialog = remember { mutableStateOf(false) }
     if (openAlertDialog.value) {
-        CalendarAlertDialogListOfCalendars(openAlertDialog, eventVM)
+        CalendarAlertDialogListOfCalendars(openAlertDialog, eventVM, eventVM.calendarsList)
     }
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = SheetState(
@@ -95,46 +91,13 @@ fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () ->
     )
     val scope = rememberCoroutineScope()
 
-    if (permissionsState.allPermissionsGranted) {
-        eventVM.permissionsGranted.value = true
-        eventVM.getCalendars()
-        eventVM.getEvents()
-        CalendarScaffold(
-            openAlertDialog,
-            scope,
-            bottomSheetScaffoldState,
-            eventVM,
-            onClickTask,
-            onClickTimer
-        )
-    } else {
-        CalendarGetPermissions(permissionsState)
-    }
-}
-
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-private fun CalendarGetPermissions(permissionsState: MultiplePermissionsState) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        content = {contentPadding ->
-            Column(
-                modifier = Modifier
-                    .padding(contentPadding)
-                    .fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Добавьте разрешение для использования календаря.",
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { permissionsState.launchMultiplePermissionRequest() }) {
-                    Text("Дать разрешение")
-                }
-            }
-        }
+    CalendarScaffold(
+        openAlertDialog,
+        scope,
+        bottomSheetScaffoldState,
+        eventVM,
+        onClickTask,
+        onClickTimer
     )
 }
 
@@ -163,7 +126,13 @@ private fun CalendarScaffold(
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
             CalendarListEventsDate(eventVM)
-            CalendarListEvents(eventVM.eventsList, scope, bottomSheetScaffoldState, eventVM)
+            CalendarListEvents(
+                eventVM.eventsList,
+                eventVM.tasksList,
+                scope,
+                bottomSheetScaffoldState,
+                eventVM
+            )
         }
     }
     CalendarBottomSheet(scope, bottomSheetScaffoldState, eventVM)
@@ -176,9 +145,17 @@ private fun CalendarSettingsTopBar(openAlertDialog: MutableState<Boolean>) {
         title = {},
         colors =  TopAppBarDefaults.topAppBarColors(Color.Transparent),
         actions = {
-            IconButton(onClick = { openAlertDialog.value = true })
-            {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+            Button(
+                onClick = { openAlertDialog.value = true },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Gray
+                )
+            ){
+                Text(
+                    text = "Выбор календаря",
+                    fontSize = 14.sp
+                )
             }
         }
     )
@@ -186,6 +163,8 @@ private fun CalendarSettingsTopBar(openAlertDialog: MutableState<Boolean>) {
 
 @Composable
 fun CalendarListEventsDate(eventVM: EventVM) {
+    eventVM.getTasks()
+    eventVM.getEvents()
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
@@ -246,18 +225,90 @@ fun CalendarListEventsDate(eventVM: EventVM) {
 @Composable
 fun CalendarListEvents(
     events: MutableState<List<Event>>,
+    tasks: MutableState<List<Task>>,
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM
 ) {
-    if (events.value.isNotEmpty()) {
+    if (events.value.isNotEmpty() || tasks.value.isNotEmpty()) {
         LazyColumn {
+            itemsIndexed(tasks.value)
+            { _, item ->
+                val checkedState = remember { mutableStateOf(item.check) }
+                Row(
+                    modifier = Modifier
+                        .height(64.dp)
+                        .fillMaxWidth()
+                        .alpha(
+                            if(checkedState.value) 0.4f else 1.0f
+                        )
+                        .padding(30.dp, 8.dp, 24.dp, 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    if(checkedState.value) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.check_circle),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .clickable {
+                                    checkedState.value = !checkedState.value
+                                    eventVM.editStatus(item.id!!, checkedState.value)
+                                }
+                                .height(16.dp)
+                                .width(16.dp)
+                                .weight(1f),
+                            tint = Color.Gray
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.outline_circle),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .clickable {
+                                    checkedState.value = !checkedState.value
+                                    eventVM.editStatus(item.id!!, checkedState.value)
+                                }
+                                .height(16.dp)
+                                .width(16.dp)
+                                .weight(1f),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.padding(4.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .clip(shape = RoundedCornerShape(16.dp))
+                            .fillMaxHeight()
+                            .background(colorScheme.surface)
+                            .weight(6f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            color = if(!item.check && (item.date ?: LocalDate.now().plusDays(1)) < LocalDate.now())
+                                colorScheme.error
+                                    else colorScheme.onBackground,
+                            overflow = TextOverflow.Ellipsis,
+                            text = item.title,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
             itemsIndexed(events.value.sortedBy { it.start }.sortedBy { it.allDay == 0 }) { _, item ->
                 Row(
                     modifier = Modifier
                         .height(64.dp)
                         .fillMaxWidth()
-                        .padding(24.dp, 8.dp, 24.dp, 8.dp)
+                        .alpha(
+                            if((eventVM.selectedDate.value < LocalDate.now()) ||
+                            (item.end.toLocalDate() == LocalDate.now()
+                                    && item.end < LocalDateTime.now()
+                                    && item.allDay == 0))
+                                0.4f else 1.0f)
+                        .padding(28.dp, 8.dp, 24.dp, 8.dp)
                         .clickable {
                             eventVM.pickedEventForBottomSheet(
                                 item.id,
@@ -272,21 +323,33 @@ fun CalendarListEvents(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .padding(0.dp, 4.dp, 0.dp, 4.dp)
+                            .background(Color(
+                            ColorUtils.blendARGB(
+                                parseColor(
+                                    "#FF" +
+                                            (Integer
+                                                .toHexString(
+                                                    item.colorEvent
+                                                        ?: item.colorCalendar!!
+                                                )
+                                                .drop(2))
+                                ), Color.White.toArgb(), 0.1f
+                            )
+                        )
+                    ))
+                    Spacer(modifier = Modifier.padding(4.dp))
                     Text(
                         text = if (item.allDay == 1) {
                             "Весь" + "\n" + "день"
                         } else {
                             item.start.format(DateTimeFormatter.ofPattern("HH:mm")) + "\n" + item.end.format(DateTimeFormatter.ofPattern("HH:mm"))
                         },
-                        color = if(
-                            (item.end.toLocalDate() < LocalDate.now()) ||
-                            (item.end.toLocalDate() == LocalDate.now()
-                                    && item.end < LocalDateTime.now()
-                                    && item.allDay == 0)
-                        ) {
-                            if (isSystemInDarkTheme()) neutral40 else neutral60
-                        } else {
-                            colorScheme.onBackground },
+                        color = colorScheme.onBackground,
                         modifier = Modifier.weight(1f),
                         fontSize = 14.sp
                     )
@@ -294,51 +357,12 @@ fun CalendarListEvents(
                         modifier = Modifier
                             .clip(shape = RoundedCornerShape(16.dp))
                             .fillMaxHeight()
-                            .background(
-                                if (isSystemInDarkTheme()) {
-                                    Color(
-                                        ColorUtils.blendARGB(
-                                            parseColor(
-                                                "#96" +
-                                                        (Integer
-                                                            .toHexString(
-                                                                item.colorEvent
-                                                                    ?: item.colorCalendar!!
-                                                            )
-                                                            .drop(2))
-                                            ),
-                                            Color.White.toArgb(), 0.3f
-                                        )
-                                    )
-                                } else {
-                                    Color(
-                                        ColorUtils.blendARGB(
-                                            parseColor(
-                                                "#96" +
-                                                        (Integer
-                                                            .toHexString(
-                                                                item.colorEvent
-                                                                    ?: item.colorCalendar!!
-                                                            )
-                                                            .drop(2))
-                                            ), Color.White.toArgb(), 0.1f
-                                        )
-                                    )
-                                }
-                            )
+                            .background(colorScheme.surface)
                             .weight(6f),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            color =if(
-                                (item.end.toLocalDate() < LocalDate.now()) ||
-                                (item.end.toLocalDate() == LocalDate.now()
-                                        && item.end < LocalDateTime.now()
-                                        && item.allDay == 0)
-                            ) {
-                                if (isSystemInDarkTheme()) neutral40 else neutral60
-                            } else {
-                                colorScheme.onBackground },
+                            color = colorScheme.onBackground,
                             overflow = TextOverflow.Ellipsis,
                             text = item.title,
                             textAlign = TextAlign.Center
@@ -353,12 +377,14 @@ fun CalendarListEvents(
             horizontalAlignment = Alignment.CenterHorizontally
         ){
             Text(
-                text = "Событий на выбранный день в данных календарях нет",
+                text = "Событий и задач на выбранный день нет",
                 textAlign = TextAlign.Center
             )
         }
     }
 }
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

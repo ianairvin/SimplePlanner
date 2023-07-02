@@ -22,17 +22,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 class DataModule {
-    @Provides
-    @Singleton
-    fun provideCalendarRepository(app: Application) : CalendarRepository {
-        return CalendarRepositoryImpl(appContext = app)
-    }
-
-    @Provides
-    @Singleton
-    fun provideEventRepository(app: Application) : EventRepository {
-        return EventRepositoryImpl(appContext = app)
-    }
 
     @Provides
     @Singleton
@@ -42,6 +31,18 @@ class DataModule {
             DataBase::class.java,
             DataBase.DB_NAME
         ).addCallback(InitializeDB()).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideCalendarRepository(db: DataBase, app: Application) : CalendarRepository {
+        return CalendarRepositoryImpl(dao = db.dao, appContext = app)
+    }
+
+    @Provides
+    @Singleton
+    fun provideEventRepository(app: Application) : EventRepository {
+        return EventRepositoryImpl(appContext = app)
     }
 
     @Provides

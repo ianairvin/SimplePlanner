@@ -1,20 +1,31 @@
 package ru.simpleplanner.presentation.event_screen
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import ru.simpleplanner.domain.use_case.calendar_uc.GetCalendarsUseCase
 import java.time.LocalDate
 import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import ru.simpleplanner.domain.entities.Event
+import ru.simpleplanner.domain.entities.Calendar
+import ru.simpleplanner.domain.entities.Task
+import ru.simpleplanner.domain.use_case.calendar_uc.GetPickedCalendarsUseCase
+import ru.simpleplanner.domain.use_case.calendar_uc.InsertPickedCalendarsUseCase
 import ru.simpleplanner.domain.use_case.event_uc.DeleteEventUseCase
 import ru.simpleplanner.domain.use_case.event_uc.GetEventsUseCase
 import ru.simpleplanner.domain.use_case.event_uc.GetOneEventUseCase
 import ru.simpleplanner.domain.use_case.event_uc.InsertEventUseCase
 import ru.simpleplanner.domain.use_case.event_uc.UpdateEventUseCase
+import ru.simpleplanner.domain.use_case.task_uc.EditStatusTaskUseCase
+import ru.simpleplanner.domain.use_case.task_uc.GetTasksForSpecificDay
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.TimeZone
@@ -23,23 +34,23 @@ import java.util.TimeZone
 @HiltViewModel
 class EventVM @Inject constructor(
     private val deleteEventUseCase: DeleteEventUseCase,
+    private val insertPickedCalendarsUseCase: InsertPickedCalendarsUseCase,
     private val getCalendarsUseCase: GetCalendarsUseCase,
+    private val getPickedCalendarsUseCase: GetPickedCalendarsUseCase,
     private val getEventsUseCase: GetEventsUseCase,
     private val getOneEventUseCase: GetOneEventUseCase,
     private val insertEventUseCase: InsertEventUseCase,
-    private val updateEventUseCase: UpdateEventUseCase
+    private val updateEventUseCase: UpdateEventUseCase,
+    private val getTasksForSpecificDayUseCase: GetTasksForSpecificDay,
+    private val editStatusTaskUseCase: EditStatusTaskUseCase
 ): ViewModel() {
 
     val selectedDate: MutableState<LocalDate> by lazy {
         mutableStateOf(LocalDate.now())
     }
 
-    val permissionsGranted : MutableState<Boolean> by lazy {
-        mutableStateOf(false)
-    }
-
-    val selectedCalendarsId : MutableState<ArrayList<String>> by lazy {
-        mutableStateOf(ArrayList())
+    val selectedCalendarsId : MutableState<MutableList<String>> by lazy {
+        mutableStateOf(mutableListOf())
     }
 
     val repeatRule = arrayOf(
@@ -51,9 +62,10 @@ class EventVM @Inject constructor(
         arrayOf("Каждый месяц", "MONTHLY/1")
     )
 
-    var calendarsList = mutableStateOf(getCalendarsUseCase(permissionsGranted.value))
-    var eventsList = mutableStateOf(
-        getEventsUseCase(selectedDate.value, selectedCalendarsId.value))
+    var calendarsList = mutableStateOf(emptyList<Calendar>())
+    var eventsList = mutableStateOf(emptyList<Event>())
+    var tasksList = mutableStateOf(emptyList<Task>())
+
 
     val calendarIdForBottomSheet =  mutableStateOf("")
     val calendarDisplayNameForBottomSheet = mutableStateOf("")
@@ -69,12 +81,20 @@ class EventVM @Inject constructor(
 
     val updaterBottomSheet = mutableStateOf(false)
 
-    fun getCalendars(){
-        calendarsList.value = getCalendarsUseCase(permissionsGranted.value)
+    private fun getCalendars() = viewModelScope.launch{
+        calendarsList.value = getCalendarsUseCase()
     }
 
-    fun getEvents(){
+    private fun getPickedCalendars() = viewModelScope.launch{
+        selectedCalendarsId.value = getPickedCalendarsUseCase() as MutableList<String>
+    }
+
+    fun getEvents() = viewModelScope.launch{
         eventsList.value = getEventsUseCase(selectedDate.value, selectedCalendarsId.value)
+    }
+
+    fun getTasks() = viewModelScope.launch{
+        tasksList.value = getTasksForSpecificDayUseCase(selectedDate.value)
     }
 
     @SuppressLint("AutoboxingStateValueProperty")
@@ -99,7 +119,7 @@ class EventVM @Inject constructor(
     }
 
     @SuppressLint("AutoboxingStateValueProperty")
-    fun pickedEventForBottomSheet(id: String, calendarId: String, start: LocalDateTime, end: LocalDateTime){
+    fun pickedEventForBottomSheet(id: String, calendarId: String, start: LocalDateTime, end: LocalDateTime) = viewModelScope.launch{
         val event = getOneEventUseCase(id, calendarId, start, end)
         calendarIdForBottomSheet.value = event.calendarId
         calendarDisplayNameForBottomSheet.value = event.calendarDisplayName
@@ -145,15 +165,36 @@ class EventVM @Inject constructor(
             null
         )
         if(updaterBottomSheet.value){
-            updateEventUseCase(event)
+            updateEvent(event)
         } else {
-            insertEventUseCase(event)
+            insertEvent(event)
         }
-        getEvents()
+       // getEvents()
     }
 
-    fun deleteEvent(){
+    private fun updateEvent(event: Event) = viewModelScope.launch{
+        updateEventUseCase(event)
+    }
+
+    private fun insertEvent(event: Event) = viewModelScope.launch{
+        insertEventUseCase(event)
+    }
+
+    fun deleteEvent() = viewModelScope.launch {
         deleteEventUseCase(idEventForBottomSheet.value)
-        getEvents()
+       // getEvents()
+    }
+
+    fun savePickedCalendars() = viewModelScope.launch{
+        insertPickedCalendarsUseCase(selectedCalendarsId.value)
+    }
+
+    fun editStatus(id: Int, check: Boolean) = viewModelScope.launch{
+        editStatusTaskUseCase(id, check)
+    }
+
+    init{
+        getCalendars()
+        getPickedCalendars()
     }
 }
