@@ -11,12 +11,13 @@ import javax.inject.Inject
 class TimerRepositoryImpl @Inject constructor (
     private val dao: Dao
 ): TimerRepository {
-    override suspend fun updateTime(work: Long, shortBreak: Long, longBreak: Long) {
+    override suspend fun updateTime(work: Long, shortBreak: Long, longBreak: Long, numberOfRepeats: Int) {
         val timer = TimerDB(
             1,
             work,
             shortBreak,
-            longBreak
+            longBreak,
+            numberOfRepeats
         )
         dao.updateTime(timer)
     }
@@ -31,5 +32,9 @@ class TimerRepositoryImpl @Inject constructor (
 
     override suspend fun getTimeLongBreak(): Long {
         return dao.getTimeLongBreak()
+    }
+
+    override suspend fun getNumberOfRepeats(): Int{
+        return dao.getNumberOfRepeats()
     }
 }

@@ -8,5 +8,6 @@ data class TimerDB(
     @PrimaryKey val id: Int,
     val timeWork: Long,
     val timeShortBreak: Long,
-    val timeLongBreak: Long
+    val timeLongBreak: Long,
+    val numberOfRepeats: Int
 )

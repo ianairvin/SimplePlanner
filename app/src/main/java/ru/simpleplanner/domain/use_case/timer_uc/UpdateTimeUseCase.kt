@@ -6,7 +6,7 @@ import javax.inject.Inject
 class UpdateTimeUseCase @Inject constructor(
     private val timerRepository : TimerRepository
 ) {
-    suspend operator fun invoke(work: Long, shortBreak: Long, longBreak: Long){
-        return timerRepository.updateTime(work, shortBreak, longBreak)
+    suspend operator fun invoke(work: Long, shortBreak: Long, longBreak: Long, numberOfRepeats: Int){
+        return timerRepository.updateTime(work, shortBreak, longBreak, numberOfRepeats)
     }
 }

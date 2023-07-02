@@ -18,4 +18,8 @@ class GetTimeUseCase @Inject constructor(
     suspend fun getTimeLongBreak(): Long {
         return timerRepository.getTimeLongBreak()
     }
+
+    suspend fun getNumberOfRepeats(): Int{
+        return timerRepository.getNumberOfRepeats()
+    }
 }

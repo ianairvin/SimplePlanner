@@ -4,14 +4,39 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.os.CountDownTimer
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import ru.simpleplanner.domain.use_case.timer_uc.GetTimeUseCase
 import ru.simpleplanner.domain.use_case.timer_uc.UpdateTimeUseCase
+import ru.simpleplanner.presentation.task_screen.TaskVM
 import javax.inject.Inject
 
 
@@ -20,7 +45,7 @@ import javax.inject.Inject
 class TimerVM @Inject constructor(
     private val getTimeUseCase: GetTimeUseCase,
     private val updateTimeUseCase: UpdateTimeUseCase,
-    private val appContext: Application
+    appContext: Application
 ) : ViewModel() {
 
     private var timer: CountDownTimer? = null
@@ -32,10 +57,12 @@ class TimerVM @Inject constructor(
     var currentTimeMode = timeDefaultWork
     val timeLeft = mutableLongStateOf(0L)
 
-    val isWorkScreen = mutableStateOf(true)
+    val currentScreen = mutableIntStateOf(1)
+
+    val numberOfRepeats = mutableIntStateOf(0)
+
     val isTimerRunning = mutableStateOf(false)
     val isTimerOnPause = mutableStateOf(false)
-    val isShortRest = mutableStateOf(true)
     val timeTitleScreen = mutableStateOf("")
 
     val service = NotificationService(appContext)
@@ -44,6 +71,7 @@ class TimerVM @Inject constructor(
             timeDefaultWork.value = getTimeUseCase.getTimeWork()
             timeDefaultShortRest.value = getTimeUseCase.getTimeShortBreak()
             timeDefaultLongRest.value = getTimeUseCase.getTimeLongBreak()
+            numberOfRepeats.value = getTimeUseCase.getNumberOfRepeats()
             val minutes = ((timeDefaultWork.value / 1000) / 60)
             val seconds = ((timeDefaultWork.value / 1000) % 60)
             timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
@@ -66,13 +94,29 @@ class TimerVM @Inject constructor(
             }
 
             override fun onFinish() {
-                timeLeft.value = currentTimeMode.value
                 isTimerRunning.value = false
                 isTimerOnPause.value = false
-                val minutes = ((timeLeft.value / 1000) / 60)
-                timeTitleScreen.value = "$minutes:00"
+                numberOfRepeats.value++
+                when (currentTimeMode) {
+                    timeDefaultWork -> if (numberOfRepeats.value >= 4) {
+                                            currentTimeMode = timeDefaultLongRest
+                                            currentScreen.value = 3
+                                        } else {
+                                            currentTimeMode = timeDefaultShortRest
+                                            currentScreen.value = 2
+                                        }
 
-                service.show(isWorkScreen.value)
+                    timeDefaultShortRest -> { currentTimeMode = timeDefaultWork
+                    currentScreen.value = 1 }
+
+                    timeDefaultLongRest -> { currentTimeMode = timeDefaultWork
+                        numberOfRepeats.value = 0
+                        currentScreen.value = 1 }
+                }
+                timeLeft.value = currentTimeMode.value
+                minutes = ((timeLeft.value / 1000) / 60)
+                timeTitleScreen.value = String.format("%02d:00", minutes)
+                service.show(currentScreen.value == 1)
             }
         }.start()
     }
@@ -90,12 +134,74 @@ class TimerVM @Inject constructor(
         isTimerRunning.value = false
         isTimerOnPause.value = false
         val minutes = ((timeLeft.value / 1000) / 60)
-        timeTitleScreen.value = "$minutes:00"
+        timeTitleScreen.value = String.format("%02d:00", minutes)
     }
 
     fun saveTime() = viewModelScope.launch {
-        Log.i("qqqq", timeDefaultWork.value.toString())
-        updateTimeUseCase(timeDefaultWork.value, timeDefaultShortRest.value, timeDefaultLongRest.value)
+        updateTimeUseCase(
+            timeDefaultWork.value,
+            timeDefaultShortRest.value,
+            timeDefaultLongRest.value,
+            numberOfRepeats.value
+        )
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun TaskAlertDialogRepeatRule(
+        openAlertDialog: MutableState<Boolean>,
+        taskVM: TaskVM
+    ){
+        val repeatRuleTemporal = remember {
+            mutableStateOf(taskVM.repeatRuleForBottomSheet.value) }
+        AlertDialog(onDismissRequest = {
+            openAlertDialog.value = false
+            repeatRuleTemporal.value = taskVM.repeatRuleForBottomSheet.value
+        }) {
+            Surface(
+                modifier = Modifier
+                    .width(360.dp)
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = AlertDialogDefaults.TonalElevation
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    val (selectedOption, onOptionSelected) = remember {
+                        mutableStateOf(repeatRuleTemporal.value)
+                    }
+                    taskVM.repeatRule.forEach { item ->
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.selectableGroup()) {
+                            RadioButton(
+                                selected = (item.contentEquals(selectedOption)),
+                                onClick = {
+                                    onOptionSelected(item)
+                                    repeatRuleTemporal.value = item
+                                }
+                            )
+                            Text(
+                                modifier = Modifier.padding(start = 2.dp),
+                                text = item[0]
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    TextButton(
+                        onClick = {
+                            openAlertDialog.value = false
+                            taskVM.repeatRuleForBottomSheet.value = repeatRuleTemporal.value
+                        },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Применить")
+                    }
+                }
+            }
+        }
     }
 
 }

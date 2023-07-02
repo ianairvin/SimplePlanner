@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,16 +42,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.simpleplanner.R
+import ru.simpleplanner.presentation.task_screen.TaskAlertDialogRepeatRule
 import ru.simpleplanner.presentation.ui.theme.light_primary
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
 
 
 @Composable
 fun TimerActivity(timerVM: TimerVM, onClickCalendar: () -> Unit, onClickTask: () -> Unit) {
+    val interactionSource = MutableInteractionSource()
+    val openAlertDialogNumberOfRepeat = remember { mutableStateOf(false) }
+    if(openAlertDialogNumberOfRepeat.value) {
+        TimerAlertDialogClearNumberOfRepeat(openAlertDialogNumberOfRepeat, timerVM)
+    }
     ScaffoldTimer(
         timerVM,
         onClickCalendar,
         onClickTask,
+        interactionSource,
+        openAlertDialogNumberOfRepeat
     )
 }
 
@@ -59,6 +68,8 @@ private fun ScaffoldTimer(
     timerVM: TimerVM,
     onClickCalendar: () -> Unit,
     onClickTimer: () -> Unit,
+    interactionSource: MutableInteractionSource,
+    openAlertDialogNumberOfRepeat: MutableState<Boolean>
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -72,17 +83,20 @@ private fun ScaffoldTimer(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            TimerScreenContent(timerVM)
+            TimerScreenContent(timerVM, interactionSource, openAlertDialogNumberOfRepeat)
         }
     }
 }
 
 @Composable
-fun TimerScreenContent(timerVM: TimerVM){
-    val interactionSource = MutableInteractionSource()
+fun TimerScreenContent(timerVM: TimerVM,
+                       interactionSource: MutableInteractionSource,
+                       openAlertDialogNumberOfRepeat: MutableState<Boolean>
+){
     TimerSwitchWorkOrRest(timerVM)
     TimerSwitchShortOrLongRest(timerVM, interactionSource)
     TimerNumbers(timerVM, interactionSource)
+    TimerNumberOfRepeats(timerVM, openAlertDialogNumberOfRepeat, interactionSource)
     TimerButtons(timerVM)
 }
 
@@ -100,7 +114,7 @@ fun TimerSwitchWorkOrRest(timerVM: TimerVM){
                 bottomStartPercent = cornerRadius,
                 bottomEndPercent = 0
             ),
-            colors = if(timerVM.isWorkScreen.value) { ButtonDefaults.buttonColors(
+            colors = if(timerVM.currentScreen.value == 1) { ButtonDefaults.buttonColors(
                 containerColor = light_primary,
                 contentColor = colorScheme.onBackground
             ) } else { ButtonDefaults.buttonColors(
@@ -109,7 +123,7 @@ fun TimerSwitchWorkOrRest(timerVM: TimerVM){
             )} ,
             onClick = {
                 if(!timerVM.isTimerRunning.value) {
-                    timerVM.isWorkScreen.value = true
+                    timerVM.currentScreen.value = 1
                     timerVM.currentTimeMode = timerVM.timeDefaultWork
                     val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
                     val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
@@ -126,7 +140,8 @@ fun TimerSwitchWorkOrRest(timerVM: TimerVM){
                 bottomStartPercent = 0,
                 bottomEndPercent = cornerRadius
             ),
-            colors = if(!timerVM.isWorkScreen.value) { ButtonDefaults.buttonColors(
+            colors = if(timerVM.currentScreen.value != 1)
+            { ButtonDefaults.buttonColors(
                 containerColor = light_primary,
                 contentColor = colorScheme.onBackground
             ) } else { ButtonDefaults.buttonColors(
@@ -135,7 +150,7 @@ fun TimerSwitchWorkOrRest(timerVM: TimerVM){
             )},
             onClick = {
                 if(!timerVM.isTimerRunning.value) {
-                    timerVM.isWorkScreen.value = false
+                    timerVM.currentScreen.value = 2
                     timerVM.currentTimeMode = timerVM.timeDefaultShortRest
                     val minutes = ((timerVM.timeDefaultShortRest.value / 1000) / 60)
                     val seconds = ((timerVM.timeDefaultShortRest.value / 1000) % 60)
@@ -152,9 +167,11 @@ fun TimerSwitchWorkOrRest(timerVM: TimerVM){
 @Composable
 fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInteractionSource){
     Row (
-        modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 100.dp).height(36.dp)
+        modifier = Modifier
+            .padding(0.dp, 0.dp, 0.dp, 100.dp)
+            .height(36.dp)
     ){
-        if (!timerVM.isWorkScreen.value) {
+        if (timerVM.currentScreen.value != 1) {
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowLeft,
                 contentDescription = "Choose break",
@@ -163,10 +180,12 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = {
-                        timerVM.isShortRest.value = !timerVM.isShortRest.value
                         timerVM.currentTimeMode =
-                            if (timerVM.isShortRest.value) timerVM.timeDefaultShortRest
+                            if (timerVM.currentScreen.value == 3)
+                                timerVM.timeDefaultShortRest
                             else timerVM.timeDefaultLongRest
+                        timerVM.currentScreen.value =
+                            if (timerVM.currentScreen.value == 3) 2 else 3
                         val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
                         val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
                         timerVM.timeTitleScreen.value =
@@ -178,7 +197,7 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
                 tint = if(timerVM.isTimerRunning.value) colorScheme.background else colorScheme.onBackground
             )
             Text(
-                text = if (timerVM.isShortRest.value) "короткий перерыв" else "длинный перерыв"
+                text = if (timerVM.currentScreen.value == 2) "короткий перерыв" else "длинный перерыв"
             )
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowRight,
@@ -188,10 +207,12 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
                         interactionSource = interactionSource,
                         indication = null,
                         onClick = {
-                            timerVM.isShortRest.value = !timerVM.isShortRest.value
                             timerVM.currentTimeMode =
-                                if (timerVM.isShortRest.value) timerVM.timeDefaultShortRest
+                                if (timerVM.currentScreen.value == 3)
+                                    timerVM.timeDefaultShortRest
                                 else timerVM.timeDefaultLongRest
+                            timerVM.currentScreen.value =
+                                if (timerVM.currentScreen.value == 3) 2 else 3
                             val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
                             val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
                             timerVM.timeTitleScreen.value =
@@ -206,6 +227,7 @@ fun TimerSwitchShortOrLongRest(timerVM: TimerVM, interactionSource: MutableInter
     }
 }
 
+@SuppressLint("AutoboxingStateValueProperty")
 @Composable
 fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
     Row(
@@ -216,17 +238,20 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
             imageVector = Icons.Outlined.KeyboardArrowLeft,
             contentDescription = "Choose time",
             modifier = if(!timerVM.isTimerRunning.value){
-                Modifier.clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = {
-                        timerVM.currentTimeMode.value -=
-                            if(timerVM.currentTimeMode.value > 60000) 60000 else 0
-                        val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
-                        val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
-                        timerVM.timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
-                    })
-                    .height(36.dp).width(36.dp)
+                Modifier
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = {
+                            timerVM.currentTimeMode.value -=
+                                if (timerVM.currentTimeMode.value > 60000) 60000 else 0
+                            val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
+                            val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
+                            timerVM.timeTitleScreen.value =
+                                String.format("%02d:%02d", minutes, seconds)
+                        })
+                    .height(36.dp)
+                    .width(36.dp)
             } else {
                 Modifier
             },
@@ -244,17 +269,20 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
             imageVector = Icons.Outlined.KeyboardArrowRight,
             contentDescription = "Choose time",
             modifier = if(!timerVM.isTimerRunning.value){
-                Modifier.clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = {
-                        timerVM.currentTimeMode.value +=
-                            if(timerVM.currentTimeMode.value < 3600000) 60000 else 0
-                        val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
-                        val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
-                        timerVM.timeTitleScreen.value = String.format("%02d:%02d", minutes, seconds)
-                    })
-                    .height(36.dp).width(36.dp)
+                Modifier
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = {
+                            timerVM.currentTimeMode.value +=
+                                if (timerVM.currentTimeMode.value < 3600000) 60000 else 0
+                            val minutes = ((timerVM.currentTimeMode.value / 1000) / 60)
+                            val seconds = ((timerVM.currentTimeMode.value / 1000) % 60)
+                            timerVM.timeTitleScreen.value =
+                                String.format("%02d:%02d", minutes, seconds)
+                        })
+                    .height(36.dp)
+                    .width(36.dp)
             } else {
                 Modifier
             },
@@ -265,9 +293,74 @@ fun TimerNumbers(timerVM: TimerVM, interactionSource: MutableInteractionSource){
 
 @SuppressLint("AutoboxingStateValueProperty")
 @Composable
+fun TimerNumberOfRepeats(timerVM: TimerVM,
+                         openAlertDialogNumberOfRepeat: MutableState<Boolean>,
+                         interactionSource: MutableInteractionSource
+){
+    if(timerVM.numberOfRepeats.value == 4 && timerVM.currentScreen.value == 1 && timerVM.isTimerRunning.value) {
+        timerVM.numberOfRepeats.value = 0
+    }
+    Row( modifier = Modifier
+        .padding(0.dp, 40.dp, 0.dp, 0.dp)
+        .clickable (
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = { openAlertDialogNumberOfRepeat.value = true }
+        ),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically){
+        Icon(
+            painter = painterResource(id = if(timerVM.numberOfRepeats.value >= 1)
+                R.drawable.fill_circle
+            else R.drawable.outline_circle),
+            contentDescription = null,
+            modifier = Modifier
+                .height(12.dp)
+                .width(12.dp)
+                .padding(2.dp, 0.dp, 2.dp, 0.dp),
+            tint = colorScheme.primary
+        )
+        Icon(
+            painter = painterResource(id = if(timerVM.numberOfRepeats.value >= 2)
+                R.drawable.fill_circle
+            else R.drawable.outline_circle),
+            contentDescription = null,
+            modifier = Modifier
+                .height(12.dp)
+                .width(12.dp)
+                .padding(2.dp, 0.dp, 2.dp, 0.dp),
+            tint = colorScheme.primary
+        )
+        Icon(
+            painter = painterResource(id = if(timerVM.numberOfRepeats.value >= 3)
+                R.drawable.fill_circle
+            else R.drawable.outline_circle),
+            contentDescription = null,
+            modifier = Modifier
+                .height(12.dp)
+                .width(12.dp)
+                .padding(2.dp, 0.dp, 2.dp, 0.dp),
+            tint = colorScheme.primary
+        )
+        Icon(
+            painter = painterResource(id = if(timerVM.numberOfRepeats.value >= 4)
+                R.drawable.fill_circle
+            else R.drawable.outline_circle),
+            contentDescription = null,
+            modifier = Modifier
+                .height(12.dp)
+                .width(12.dp)
+                .padding(2.dp, 0.dp, 2.dp, 0.dp),
+            tint = colorScheme.primary
+        )
+    }
+}
+
+@SuppressLint("AutoboxingStateValueProperty")
+@Composable
 fun TimerButtons(timerVM: TimerVM) {
     Row(
-        modifier = Modifier.padding(0.dp, 120.dp, 0.dp, 140.dp),
+        modifier = Modifier.padding(0.dp, 120.dp, 0.dp, 60.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -323,9 +416,7 @@ fun TimerButtons(timerVM: TimerVM) {
                 onClick = {
                     timerVM.isTimerRunning.value = true
                     if(!timerVM.isTimerOnPause.value) {
-                        if(timerVM.isWorkScreen.value) timerVM.timeLeft.value = timerVM.timeDefaultWork.value
-                        else if (timerVM.isShortRest.value) timerVM.timeLeft.value = timerVM.timeDefaultShortRest.value
-                        else timerVM.timeLeft.value = timerVM.timeDefaultLongRest.value
+                        timerVM.timeLeft.value = timerVM.currentTimeMode.value
                     }
                     timerVM.startTimer()
                 },

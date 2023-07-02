@@ -58,4 +58,7 @@ interface Dao {
     @Query("SELECT timeLongBreak FROM timer WHERE id = 1")
     suspend fun getTimeLongBreak() : Long
 
+    @Query("SELECT numberOfRepeats FROM timer WHERE id = 1")
+    suspend fun getNumberOfRepeats() : Int
+
 }
