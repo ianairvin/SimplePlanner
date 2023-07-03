@@ -86,6 +86,7 @@ class TimerVM @Inject constructor(
             }
 
             override fun onFinish() {
+                service.show(currentScreen.value == 1)
                 isTimerRunning.value = false
                 isTimerOnPause.value = false
                 when (currentTimeMode) {
@@ -109,7 +110,6 @@ class TimerVM @Inject constructor(
                 timeLeft.value = currentTimeMode.value
                 minutes = ((timeLeft.value / 1000) / 60)
                 timeTitleScreen.value = String.format("%02d:00", minutes)
-                service.show(currentScreen.value == 1)
             }
         }.start()
     }
