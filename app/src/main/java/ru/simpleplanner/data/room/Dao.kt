@@ -10,38 +10,34 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface Dao {
-    @Query("SELECT * FROM task WHERE `check` = 0" +
+    @Query("SELECT * FROM task WHERE (`check` = 0 AND date < :dateToday)" +
             " OR (date = :dateToday)" +
-            " OR (repeatRule = :daily)" +
-            " OR (repeatRule = :weekly AND dayOfWeek = :dayOfWeek)" +
             " ORDER BY make_date_time ASC")
-    fun getTodayTask(dateToday: Long, dayOfWeek: Int, daily: String = "DAILY", weekly: String = "WEEKLY") : Flow<List<TaskDB>>
+    fun getTodayTask(dateToday: Long) : Flow<List<TaskDB>>
 
     @Query("SELECT * FROM task WHERE date = :dateTomorrow" +
-            " OR repeatRule = 'DAILY'" +
-            " OR (repeatRule = 'WEEKLY' AND dayOfWeek = :dayOfWeek)" +
             " ORDER BY make_date_time ASC")
-    fun getTomorrowTask(dateTomorrow: Long, dayOfWeek: Int) : Flow<List<TaskDB>>
+    fun getTomorrowTask(dateTomorrow: Long) : Flow<List<TaskDB>>
 
-    @Query("SELECT * FROM task WHERE repeatRule = 'DAILY'" +
-            " OR (date > :dateTomorrow" +
+    @Query("SELECT * FROM task WHERE (date > :dateTomorrow" +
             " AND  date <= :dateEndOfWeek)" +
-            " OR (repeatRule = 'WEEKLY' AND dayOfWeek IN (:arg))" +
             " ORDER BY make_date_time ASC")
-    fun getWeekTask(dateTomorrow: Long, dateEndOfWeek: Long, arg: Array<Int>) : Flow<List<TaskDB>>
+    fun getWeekTask(dateTomorrow: Long, dateEndOfWeek: Long) : Flow<List<TaskDB>>
 
-    @Query("SELECT * FROM task WHERE date = 0 ORDER BY make_date_time ASC")
+    @Query("SELECT * FROM task WHERE date IS NULL ORDER BY make_date_time ASC")
     fun getSomeDayTask() : Flow<List<TaskDB>>
 
     @Query("SELECT * FROM task WHERE (`check` = 1 AND date < :dateNow) ORDER BY make_date_time ASC")
     fun getDoneTask(dateNow: Long) : Flow<List<TaskDB>>
 
     @Query("SELECT * FROM task WHERE date = :date" +
-            " OR (`check` = 0 AND date < :date)" +
-            " OR repeatRule = 'DAILY'" +
-            " OR (repeatRule = 'WEEKLY' AND dayOfWeek = :dayOfWeek)" +
             " ORDER BY make_date_time ASC")
-    suspend fun getTasksForSpecificDay(date: Long, dayOfWeek: Int) : List<TaskDB>
+    suspend fun getTasksForSpecificDay(date: Long) : List<TaskDB>
+
+    @Query("SELECT * FROM task WHERE date = :date" +
+            " OR (`check` = 0 AND date < :date)" +
+            " ORDER BY make_date_time ASC")
+    suspend fun getTasksForTodayDay(date: Long) : List<TaskDB>
 
     @Query("SELECT * FROM task WHERE id = :id")
     suspend fun getByIdTask(id: Int) : TaskDB

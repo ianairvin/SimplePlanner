@@ -1,11 +1,8 @@
 package ru.simpleplanner.presentation.event_screen
 
-import android.Manifest
 import android.graphics.Color.parseColor
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,8 +30,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,8 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.MultiplePermissionsState
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.DatePickerDefaults
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
@@ -66,8 +59,12 @@ import kotlinx.coroutines.launch
 import ru.simpleplanner.R
 import ru.simpleplanner.domain.entities.Event
 import ru.simpleplanner.domain.entities.Task
-import ru.simpleplanner.presentation.ui.theme.md_theme_dark_onBackground
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
+import ru.simpleplanner.presentation.ui.theme.priority_blue
+import ru.simpleplanner.presentation.ui.theme.priority_green
+import ru.simpleplanner.presentation.ui.theme.priority_purple
+import ru.simpleplanner.presentation.ui.theme.priority_red
+import ru.simpleplanner.presentation.ui.theme.priority_yellow
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -242,47 +239,63 @@ fun CalendarListEvents(
                         .alpha(
                             if(checkedState.value) 0.4f else 1.0f
                         )
-                        .padding(30.dp, 8.dp, 24.dp, 8.dp),
+                        .padding(28.dp, 8.dp, 24.dp, 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    if(checkedState.value) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.check_circle),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .clickable {
-                                    checkedState.value = !checkedState.value
-                                    eventVM.editStatus(item.id!!, checkedState.value)
+                    Box(
+                        modifier = Modifier
+                            .width(3.dp)
+                            .fillMaxHeight()
+                            .padding(0.dp, 4.dp, 0.dp, 4.dp)
+                            .background(
+                                when(item.priority) {
+                                1 -> priority_red
+                                2 -> priority_yellow
+                                3 -> priority_green
+                                4 -> priority_blue
+                                5 -> priority_purple
+                                else -> Color.Transparent
                                 }
-                                .height(16.dp)
-                                .width(16.dp)
-                                .weight(1f),
-                            tint = Color.Gray
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(id = R.drawable.outline_circle),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .clickable {
-                                    checkedState.value = !checkedState.value
-                                    eventVM.editStatus(item.id!!, checkedState.value)
-                                }
-                                .height(16.dp)
-                                .width(16.dp)
-                                .weight(1f),
-                        )
+                            )
+                    )
+                    Box(
+                        modifier = Modifier.weight(1f).padding(start = 4.dp, end = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (checkedState.value) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.check_circle),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .clickable {
+                                        checkedState.value = !checkedState.value
+                                        eventVM.editStatus(item.id!!, checkedState.value)
+                                    }
+                                    .height(16.dp)
+                                    .width(16.dp),
+                                tint = Color.Gray
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.outline_circle),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .clickable {
+                                        checkedState.value = !checkedState.value
+                                        eventVM.editStatus(item.id!!, checkedState.value)
+                                    }
+                                    .height(16.dp)
+                                    .width(16.dp),
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.padding(4.dp))
-
                     Box(
                         modifier = Modifier
                             .clip(shape = RoundedCornerShape(16.dp))
                             .fillMaxHeight()
                             .background(colorScheme.surface)
-                            .weight(6f),
+                            .weight(5f),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -325,40 +338,33 @@ fun CalendarListEvents(
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(2.dp)
+                            .width(3.dp)
                             .fillMaxHeight()
                             .padding(0.dp, 4.dp, 0.dp, 4.dp)
-                            .background(Color(
-                            ColorUtils.blendARGB(
-                                parseColor(
-                                    "#FF" +
-                                            (Integer
-                                                .toHexString(
-                                                    item.colorEvent
-                                                        ?: item.colorCalendar!!
-                                                )
-                                                .drop(2))
-                                ), Color.White.toArgb(), 0.1f
-                            )
+                            .background(Color(item.colorEvent
+                                ?: item.colorCalendar!!)))
+                    Box(
+                        modifier = Modifier.weight(1f).padding(start = 4.dp, end = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (item.allDay == 1) {
+                                "Весь" + "\n" + "день"
+                            } else {
+                                item.start.format(DateTimeFormatter.ofPattern("HH:mm")) + "\n" + item.end.format(
+                                    DateTimeFormatter.ofPattern("HH:mm")
+                                )
+                            },
+                            color = colorScheme.onBackground,
+                            fontSize = 14.sp
                         )
-                    ))
-                    Spacer(modifier = Modifier.padding(4.dp))
-                    Text(
-                        text = if (item.allDay == 1) {
-                            "Весь" + "\n" + "день"
-                        } else {
-                            item.start.format(DateTimeFormatter.ofPattern("HH:mm")) + "\n" + item.end.format(DateTimeFormatter.ofPattern("HH:mm"))
-                        },
-                        color = colorScheme.onBackground,
-                        modifier = Modifier.weight(1f),
-                        fontSize = 14.sp
-                    )
+                    }
                     Box(
                         modifier = Modifier
                             .clip(shape = RoundedCornerShape(16.dp))
                             .fillMaxHeight()
                             .background(colorScheme.surface)
-                            .weight(6f),
+                            .weight(5f),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

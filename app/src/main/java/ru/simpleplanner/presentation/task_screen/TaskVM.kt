@@ -35,7 +35,7 @@ class TaskVM @Inject constructor(
     var tasksListDone = getTasksUseCase("Done")
 
     val titleForBottomSheet =  mutableStateOf("")
-    val repeatRuleForBottomSheet =  mutableStateOf(arrayOf("Нет", ""))
+    val priorityForBottomSheet =  mutableStateOf(arrayOf("Нет", "0"))
     val noteForBottomSheet = mutableStateOf("")
     val dateForBottomSheet =  mutableStateOf(LocalDate.now())
     private val idForBottomSheet =  mutableIntStateOf(0)
@@ -44,17 +44,20 @@ class TaskVM @Inject constructor(
 
     val updaterBottomSheet = mutableStateOf(false)
 
-    val repeatRule = arrayOf(
-        arrayOf("Нет", ""),
-        arrayOf("Каждый день", "DAILY"),
-        arrayOf("Каждую неделю", "WEEKLY")
+    val priority = arrayOf(
+        arrayOf("Нет", "0"),
+        arrayOf("Красный", "1"),
+        arrayOf("Желтый", "2"),
+        arrayOf("Зеленый", "3"),
+        arrayOf("Голубой", "4"),
+        arrayOf("Фиолетовый", "5")
     )
 
     fun newTaskForBottomSheet(){
         updaterBottomSheet.value = false
 
         titleForBottomSheet.value =  ""
-        repeatRuleForBottomSheet.value =  arrayOf("Нет", "")
+        priorityForBottomSheet.value =  arrayOf("Нет", "0")
         noteForBottomSheet.value = ""
         dateForBottomSheet.value = LocalDate.now()
     }
@@ -66,13 +69,13 @@ class TaskVM @Inject constructor(
         val task = getOneTaskUseCase(id)
         titleForBottomSheet.value =  task.title
         noteForBottomSheet.value = task.note!!
-        withoutDateForBottomSheet.value = task.date.toString() == "1970-01-01"
+        withoutDateForBottomSheet.value = task.date == null
         dateForBottomSheet.value = if(withoutDateForBottomSheet.value) LocalDate.now()
                                     else task.date
-        repeatRuleForBottomSheet.value = arrayOf("Нет", "")
-        repeatRule.forEach { item ->
-            if (item[1] == task.repeatRule) {
-                repeatRuleForBottomSheet.value = arrayOf(item[0], item[1])
+        priorityForBottomSheet.value = arrayOf("Нет", "0")
+        priority.forEach { item ->
+            if (item[1] == task.priority.toString()) {
+                priorityForBottomSheet.value = arrayOf(item[0], item[1])
             }
         }
         idForBottomSheet.value = task.id!!
@@ -87,8 +90,8 @@ class TaskVM @Inject constructor(
             check = checkForBottomSheet.value,
             date = if(withoutDateForBottomSheet.value) null else dateForBottomSheet.value,
             makeDateTime = LocalDateTime.now(),
-            repeatRule = repeatRuleForBottomSheet.value[1],
-            note = noteForBottomSheet.value
+            note = noteForBottomSheet.value,
+            priority = priorityForBottomSheet.value[1].toInt()
             )
         if(updaterBottomSheet.value){
             updateTaskUseCase(task)

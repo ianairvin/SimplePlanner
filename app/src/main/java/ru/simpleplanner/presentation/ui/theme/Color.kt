@@ -66,4 +66,11 @@ val neutral40 = Color(0xFF615E57)
 val surface = Color(0x9947464F)
 val light_primary = Color(0x778987DF)
 
+val priority_red = Color(0xFFEF5350)
+val priority_yellow = Color(0xFFFFEB3B)
+val priority_green = Color(0xFF8BC34A)
+val priority_blue = Color(0xFF00BCD4)
+val priority_purple = Color(0xFF673AB7)
+
+
 val seed = Color(0xFFACAAEA)

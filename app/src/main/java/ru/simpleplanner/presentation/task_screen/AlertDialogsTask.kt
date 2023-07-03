@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -27,23 +28,31 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import ru.simpleplanner.R
+import ru.simpleplanner.presentation.ui.theme.priority_blue
+import ru.simpleplanner.presentation.ui.theme.priority_green
+import ru.simpleplanner.presentation.ui.theme.priority_purple
+import ru.simpleplanner.presentation.ui.theme.priority_red
+import ru.simpleplanner.presentation.ui.theme.priority_yellow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskAlertDialogRepeatRule(
+fun TaskAlertDialogPriority(
     openAlertDialog: MutableState<Boolean>,
     taskVM: TaskVM
 ){
-    val repeatRuleTemporal = remember {
-        mutableStateOf(taskVM.repeatRuleForBottomSheet.value) }
+    val priorityTemporal = remember {
+        mutableStateOf(taskVM.priorityForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
-        repeatRuleTemporal.value = taskVM.repeatRuleForBottomSheet.value
+        priorityTemporal.value = taskVM.priorityForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
-                .width(360.dp)
+                .width(160.dp)
                 .wrapContentHeight(),
             shape = MaterialTheme.shapes.large,
             tonalElevation = AlertDialogDefaults.TonalElevation
@@ -54,21 +63,36 @@ fun TaskAlertDialogRepeatRule(
                 verticalArrangement = Arrangement.Center
             ) {
                 val (selectedOption, onOptionSelected) = remember {
-                    mutableStateOf(repeatRuleTemporal.value)
+                    mutableStateOf(priorityTemporal.value)
                 }
-                taskVM.repeatRule.forEach { item ->
+                taskVM.priority.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.selectableGroup()) {
                         RadioButton(
                             selected = (item.contentEquals(selectedOption)),
                             onClick = {
                                 onOptionSelected(item)
-                                repeatRuleTemporal.value = item
+                                priorityTemporal.value = item
                             }
                         )
                         Text(
-                            modifier = Modifier.padding(start = 2.dp),
+                            modifier = Modifier.padding(start = 2.dp, end = 8.dp),
                             text = item[0]
+                        )
+                        Icon(
+                            painter = painterResource(id = R.drawable.fill_circle),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .height(8.dp)
+                                .width(8.dp),
+                            tint = when(item[1]) {
+                                "1" -> priority_red
+                                "2" -> priority_yellow
+                                "3" -> priority_green
+                                "4" -> priority_blue
+                                "5" -> priority_purple
+                                else -> Color.Transparent
+                            }
                         )
                     }
                 }
@@ -76,7 +100,7 @@ fun TaskAlertDialogRepeatRule(
                 TextButton(
                     onClick = {
                         openAlertDialog.value = false
-                        taskVM.repeatRuleForBottomSheet.value = repeatRuleTemporal.value
+                        taskVM.priorityForBottomSheet.value = priorityTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {

@@ -157,11 +157,13 @@ class MainActivity : ComponentActivity(
     private fun GetPermissions(permissionsState: MultiplePermissionsState) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            containerColor = colorScheme.background,
             content = {contentPadding ->
                 Column(
                     modifier = Modifier
                         .padding(contentPadding)
-                        .fillMaxSize(),
+                        .fillMaxSize()
+                        .background(colorScheme.background),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {

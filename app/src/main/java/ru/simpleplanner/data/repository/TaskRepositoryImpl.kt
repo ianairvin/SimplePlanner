@@ -15,28 +15,17 @@ import javax.inject.Inject
 class TaskRepositoryImpl @Inject constructor (
     private val dao: Dao
 ): TaskRepository {
+        override suspend fun insertTask(task: Task){
 
-    private val differenceBetweenTwoDaysOfWeek = arrayOf(
-        arrayOf(0,1,2,3,4,5,6),
-        arrayOf(6,0,1,2,3,4,5),
-        arrayOf(5,6,0,1,2,3,4),
-        arrayOf(4,5,6,0,1,2,3),
-        arrayOf(3,4,5,6,0,1,2),
-        arrayOf(2,3,4,5,6,0,1),
-        arrayOf(1,2,3,4,5,6,0),
-    )
-
-    override suspend fun insertTask(task: Task){
         val taskDB = TaskDB (
             null,
             task.title,
             task.check,
-            if (task.date == null) 0 else task.date!!.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
-            task.date!!.dayOfWeek.value,
+            if (task.date == null) null else task.date!!.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
             task.makeDateTime!!.atZone(ZoneOffset.systemDefault())
                 .toInstant().toEpochMilli(),
-            task.repeatRule!!,
-            task.note!!
+            task.note!!,
+            task.priority
         )
         dao.insertTask(taskDB)
     }
@@ -46,35 +35,27 @@ class TaskRepositoryImpl @Inject constructor (
             task.id,
             task.title,
             task.check,
-            if (task.date == null) 0 else task.date!!.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
-            task.date!!.dayOfWeek.value,
+            if (task.date == null) null else task.date!!.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
             task.makeDateTime!!.atZone(ZoneOffset.systemDefault())
                 .toInstant().toEpochMilli(),
-            task.repeatRule!!,
-            task.note!!
+            task.note!!,
+            task.priority
         )
         dao.updateTask(taskDB)
     }
 
     override suspend fun getOneTask(id: Int): Task {
         val taskDB = dao.getByIdTask(id)
-        val date: LocalDate =
-            when(taskDB.repeatRule) {
-                "DAILY" -> LocalDate.now()
-                "WEEKLY" -> LocalDate.now()
-                    .plusDays(differenceBetweenTwoDaysOfWeek[taskDB.dayOfWeek][LocalDate.now().dayOfWeek.value].toLong())
-                else -> Instant.ofEpochMilli(taskDB.date)
-                        .atZone(ZoneId.systemDefault()).toLocalDate()
-            }
         return Task(
             taskDB.id,
             taskDB.title,
             taskDB.check,
-            date,
+            if (taskDB.date != null) Instant.ofEpochMilli(taskDB.date!!)
+                .atZone(ZoneId.systemDefault()).toLocalDate() else null,
             Instant.ofEpochMilli(taskDB.makeDateTime)
                 .atZone(ZoneId.systemDefault()).toLocalDateTime(),
-            taskDB.repeatRule,
-            taskDB.note
+            taskDB.note,
+            taskDB.priority
         )
     }
 
@@ -82,32 +63,17 @@ class TaskRepositoryImpl @Inject constructor (
         val listTasksBeforeMapping : Flow<List<TaskDB>>
         if(period == "Today"){
             listTasksBeforeMapping = dao.getTodayTask(LocalDate.now().atStartOfDay().
-            atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
-                LocalDate.now().dayOfWeek.value)
+            atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli())
         } else if (period == "Tomorrow"){
             listTasksBeforeMapping = dao.getTomorrowTask(LocalDate.now().plusDays(1)
-                .atStartOfDay().atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli(),
-                LocalDate.now().plusDays(1).dayOfWeek.value)
+                .atStartOfDay().atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli())
         } else if (period == "Week") {
             val dayThroughTheWeek = LocalDate.now().plusDays(6)
-            val daysOfWeek = when(LocalDate.now().dayOfWeek.value){
-                1 -> arrayOf(3,4,5,6,7)
-                2 -> arrayOf(4,5,6,7,1)
-                3 -> arrayOf(5,6,7,1,2)
-                4 -> arrayOf(6,7,1,2,3)
-                5 -> arrayOf(7,1,2,3,4)
-                6 -> arrayOf(1,2,3,4,5)
-                7 -> arrayOf(2,3,4,5,6)
-                else -> {
-                    arrayOf(0)
-                }
-            }
             listTasksBeforeMapping = dao.getWeekTask(
                 LocalDate.now().plusDays(1).atStartOfDay().atZone(ZoneOffset.systemDefault())
                     .toInstant().toEpochMilli(),
                 dayThroughTheWeek.atStartOfDay().atZone(ZoneOffset.systemDefault())
-                    .toInstant().toEpochMilli(),
-                daysOfWeek
+                    .toInstant().toEpochMilli()
             )
         } else if (period == "SomeDay"){
             listTasksBeforeMapping = dao.getSomeDayTask()
@@ -122,11 +88,11 @@ class TaskRepositoryImpl @Inject constructor (
                     task.id,
                     task.title,
                     task.check,
-                    Instant.ofEpochMilli(task.date)
+                    if (task.date == null) null else Instant.ofEpochMilli(task.date!!)
                     .atZone(ZoneId.systemDefault()).toLocalDate(),
                     null,
                     null,
-                    null
+                    task.priority
                 )
             }
         }
@@ -144,18 +110,22 @@ class TaskRepositoryImpl @Inject constructor (
 
     override suspend fun getTasksForSpecificDay(date: LocalDate): List<Task> {
         val dateLong = date.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli()
-        val dayOfWeekInt = date.dayOfWeek.value
-        val listTasksBeforeMapping = dao.getTasksForSpecificDay(dateLong, dayOfWeekInt)
+        val listTasksBeforeMapping =
+            if(date == LocalDate.now()) {
+                dao.getTasksForTodayDay(dateLong)
+            } else {
+                dao.getTasksForSpecificDay(dateLong)
+            }
         val listTasksAfterMapping : List<Task> = listTasksBeforeMapping.map {
                 task -> Task(
                         task.id,
                         task.title,
                         task.check,
-                        Instant.ofEpochMilli(task.date)
+                        if (task.date == null) null else Instant.ofEpochMilli(task.date!!)
                             .atZone(ZoneId.systemDefault()).toLocalDate(),
                         null,
                         null,
-                        null
+                        task.priority
                     )
                 }
 

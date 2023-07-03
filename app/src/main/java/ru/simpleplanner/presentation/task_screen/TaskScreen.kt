@@ -1,7 +1,6 @@
 package ru.simpleplanner.presentation.task_screen
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -41,7 +40,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.FontWeight.Companion.W500
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +50,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ru.simpleplanner.R
 import ru.simpleplanner.domain.entities.Task
+import ru.simpleplanner.presentation.ui.theme.priority_blue
+import ru.simpleplanner.presentation.ui.theme.priority_green
+import ru.simpleplanner.presentation.ui.theme.priority_purple
+import ru.simpleplanner.presentation.ui.theme.priority_red
+import ru.simpleplanner.presentation.ui.theme.priority_yellow
 import java.time.LocalDate
 
 
@@ -254,11 +257,12 @@ fun ListTasks(
     Row(
         modifier = Modifier
             .padding(52.dp, 8.dp, 36.dp, 8.dp)
+            .height(24.dp)
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val checkedState = remember { mutableStateOf(item.check) }
-        if(checkedState.value) {
+        if (checkedState.value) {
             Icon(
                 painter = painterResource(id = R.drawable.check_circle),
                 contentDescription = null,
@@ -291,20 +295,39 @@ fun ListTasks(
             text = item.title,
             textAlign = TextAlign.Start,
             overflow = TextOverflow.Ellipsis,
-            modifier =  Modifier.clickable(
-                interactionSource = interactionSource,
-                onClick = {
-                    taskVM.pickedTaskForBottomSheet(item.id!!)
-                    scope.launch{
-                        scaffoldState.bottomSheetState.expand()
-                    }
-                },
-                indication = null
-            ),
+            modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 0.dp)
+                .clickable(
+                    interactionSource = interactionSource,
+                    onClick = {
+                        taskVM.pickedTaskForBottomSheet(item.id!!)
+                        scope.launch {
+                            scaffoldState.bottomSheetState.expand()
+                        }
+                    },
+                    indication = null
+                ),
             fontWeight = W600,
-            color = if(item.check) Color.Gray
-            else if ((item.date ?: LocalDate.now().plusDays(1)) < LocalDate.now()) colorScheme.error
+            color = if (item.check) Color.Gray
+            else if ((item.date ?: LocalDate.now()
+                    .plusDays(1)) < LocalDate.now()
+            ) colorScheme.error
             else colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.padding(end = 4.dp))
+        Icon(
+            painter = painterResource(id = R.drawable.fill_circle),
+            contentDescription = null,
+            modifier = Modifier
+                .height(8.dp)
+                .width(8.dp),
+            tint = when(item.priority) {
+                1 -> priority_red
+                2 -> priority_yellow
+                3 -> priority_green
+                4 -> priority_blue
+                5 -> priority_purple
+                else -> Color.Transparent
+            }
         )
     }
 }

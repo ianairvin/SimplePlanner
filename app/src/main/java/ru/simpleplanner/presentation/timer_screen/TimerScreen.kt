@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.simpleplanner.R
-import ru.simpleplanner.presentation.task_screen.TaskAlertDialogRepeatRule
 import ru.simpleplanner.presentation.ui.theme.light_primary
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
 

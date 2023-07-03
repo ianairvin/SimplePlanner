@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vanpra.composematerialdialogs.MaterialDialog
@@ -43,8 +44,13 @@ import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import ru.simpleplanner.presentation.event_screen.EventVM
+import ru.simpleplanner.R
 import ru.simpleplanner.presentation.ui.theme.md_theme_light_onPrimary
+import ru.simpleplanner.presentation.ui.theme.priority_blue
+import ru.simpleplanner.presentation.ui.theme.priority_green
+import ru.simpleplanner.presentation.ui.theme.priority_purple
+import ru.simpleplanner.presentation.ui.theme.priority_red
+import ru.simpleplanner.presentation.ui.theme.priority_yellow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -56,7 +62,7 @@ fun TaskBottomSheet(
     scaffoldState: BottomSheetScaffoldState,
     taskVM: TaskVM
 ) {
-    val openAlertDialogRepeatRule = remember { mutableStateOf(false) }
+    val openAlertDialogPriority = remember { mutableStateOf(false) }
     val openAlertDialogNote = remember { mutableStateOf(false) }
 
     BottomSheetScaffold(
@@ -67,13 +73,13 @@ fun TaskBottomSheet(
             scope,
             scaffoldState,
             taskVM,
-            openAlertDialogRepeatRule,
+            openAlertDialogPriority,
             openAlertDialogNote
         ) }
     ){}
 
-    if(openAlertDialogRepeatRule.value) {
-        TaskAlertDialogRepeatRule(openAlertDialogRepeatRule, taskVM)
+    if(openAlertDialogPriority.value) {
+        TaskAlertDialogPriority(openAlertDialogPriority, taskVM)
     }
 
     if(openAlertDialogNote.value) {
@@ -87,7 +93,7 @@ fun TaskBottomSheetContent(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
     taskVM: TaskVM,
-    openAlertDialogRepeatRule: MutableState<Boolean>,
+    openAlertDialogPriority: MutableState<Boolean>,
     openAlertDialogNote: MutableState<Boolean>
 ) {
     val interactionSource = MutableInteractionSource()
@@ -104,7 +110,7 @@ fun TaskBottomSheetContent(
         Spacer(modifier = Modifier.padding(8.dp))
         TaskBottomSheetDate(dateDialogState, taskVM, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        TaskBottomSheetRepeatRule(taskVM, openAlertDialogRepeatRule, interactionSource)
+        TaskBottomSheetPriority(taskVM, openAlertDialogPriority, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
         TaskBottomSheetNote(openAlertDialogNote, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
@@ -167,11 +173,14 @@ fun TaskBottomSheetDate(
     taskVM: TaskVM,
     interactionSource: MutableInteractionSource
 ){
+
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
                 .ofPattern("dd LLL u", Locale("ru"))
-                .format(taskVM.dateForBottomSheet.value)
+                .format(
+                    taskVM.dateForBottomSheet.value
+                )
         }
     }
 
@@ -194,8 +203,7 @@ fun TaskBottomSheetDate(
             ),
             horizontalArrangement = Arrangement.End) {
             Text(
-                text = if(taskVM.withoutDateForBottomSheet.value) "Нет"
-                            else formattedDate,
+                text = if(taskVM.withoutDateForBottomSheet.value) "Нет" else formattedDate,
                 textAlign = TextAlign.End,
                 color = if(taskVM.withoutDateForBottomSheet.value) Color.Gray
                 else colorScheme.onBackground
@@ -238,44 +246,58 @@ fun TaskBottomSheetNote(
     }
 }
 
+
 @Composable
-fun TaskBottomSheetRepeatRule(
+fun TaskBottomSheetPriority(
     taskVM: TaskVM,
-    openAlertDialogRepeatRule: MutableState<Boolean>,
+    openAlertDialogPriority: MutableState<Boolean>,
     interactionSource: MutableInteractionSource
 ){
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
-            text = "Повтор",
+            text = "Приоритет",
             modifier = Modifier
                 .weight(5f),
             textAlign = TextAlign.Start,
-            color = if(taskVM.withoutDateForBottomSheet.value) Color.Gray else colorScheme.onBackground
+            color = colorScheme.onBackground
         )
         Spacer(modifier = Modifier.padding(2.dp))
-        Row( modifier = if(taskVM.withoutDateForBottomSheet.value) {
-                Modifier.weight(6f)
-            } else {
-                Modifier
+        Row(modifier = Modifier
                     .weight(6f)
                     .clickable(
                         interactionSource = interactionSource,
-                        onClick = { openAlertDialogRepeatRule.value = true },
+                        onClick = { openAlertDialogPriority.value = true },
                         indication = null
-                    )
-            },
-            horizontalArrangement = Arrangement.End)
-             {
+                    ),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.fill_circle),
+                contentDescription = null,
+                modifier = Modifier
+                    .height(8.dp)
+                    .width(8.dp),
+                tint = when(taskVM.priorityForBottomSheet.value[1]) {
+                    "1" -> priority_red
+                    "2" -> priority_yellow
+                    "3" -> priority_green
+                    "4" -> priority_blue
+                    "5" -> priority_purple
+                    else -> Color.Transparent
+                }
+            )
             Text(
+                modifier = Modifier.padding(start = 8.dp),
                 text = if (taskVM.withoutDateForBottomSheet.value) "Нет" else
-                    taskVM.repeatRuleForBottomSheet.value[0],
+                    taskVM.priorityForBottomSheet.value[0],
                 textAlign = TextAlign.End,
-                color = if(taskVM.withoutDateForBottomSheet.value) Color.Gray else colorScheme.onBackground
+                color = colorScheme.onBackground
             )
             Icon(
                 imageVector = Icons.Outlined.KeyboardArrowRight,
-                contentDescription = "Choose repeat",
-                tint = if(taskVM.withoutDateForBottomSheet.value) Color.Gray else colorScheme.onBackground
+                contentDescription = "Choose priority",
+                tint = colorScheme.onBackground
             )
         }
     }

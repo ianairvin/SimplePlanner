@@ -8,6 +8,6 @@ data class Task(
     var check: Boolean,
     var date: LocalDate?,
     var makeDateTime: LocalDateTime?,
-    var repeatRule: String?,
-    var note: String?
+    var note: String?,
+    var priority: Int
 )

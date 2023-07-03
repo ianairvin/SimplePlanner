@@ -70,6 +70,9 @@ class TimerVM @Inject constructor(
     @SuppressLint("AutoboxingStateValueProperty")
     fun startTimer(millis: Long = timeLeft.value) {
         isTimerOnPause.value = false
+        if (numberOfRepeats.value == 4) {
+            numberOfRepeats.value = 0
+        }
         timer = object : CountDownTimer(millis, 1000){
         var minutes = 0L
         var seconds = 0L
@@ -85,14 +88,15 @@ class TimerVM @Inject constructor(
             override fun onFinish() {
                 isTimerRunning.value = false
                 isTimerOnPause.value = false
-                numberOfRepeats.value++
                 when (currentTimeMode) {
-                    timeDefaultWork -> if (numberOfRepeats.value >= 4) {
+                    timeDefaultWork -> if (numberOfRepeats.value == 3) {
                                             currentTimeMode = timeDefaultLongRest
                                             currentScreen.value = 3
+                                            numberOfRepeats.value++
                                         } else {
                                             currentTimeMode = timeDefaultShortRest
                                             currentScreen.value = 2
+                                            numberOfRepeats.value++
                                         }
 
                     timeDefaultShortRest -> { currentTimeMode = timeDefaultWork
