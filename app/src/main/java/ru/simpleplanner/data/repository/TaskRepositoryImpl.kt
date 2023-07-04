@@ -3,6 +3,7 @@ package ru.simpleplanner.data.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.simpleplanner.data.room.Dao
+import ru.simpleplanner.data.room.OpenSectionTaskDB
 import ru.simpleplanner.data.room.TaskDB
 import ru.simpleplanner.domain.entities.Task
 import ru.simpleplanner.domain.repository.TaskRepository
@@ -110,11 +111,12 @@ class TaskRepositoryImpl @Inject constructor (
 
     override suspend fun getTasksForSpecificDay(date: LocalDate): List<Task> {
         val dateLong = date.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli()
+        val dateToday = LocalDate.now().atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli()
         val listTasksBeforeMapping =
             if(date == LocalDate.now()) {
                 dao.getTasksForTodayDay(dateLong)
             } else {
-                dao.getTasksForSpecificDay(dateLong)
+                dao.getTasksForSpecificDay(dateLong, dateToday)
             }
         val listTasksAfterMapping : List<Task> = listTasksBeforeMapping.map {
                 task -> Task(
@@ -130,5 +132,28 @@ class TaskRepositoryImpl @Inject constructor (
                 }
 
         return listTasksAfterMapping
+    }
+
+    override suspend fun updateOpenSectionTask(openSection: List<Boolean>){
+        val openSectionDB = OpenSectionTaskDB(
+            1,
+            openSection[0],
+            openSection[1],
+            openSection[2],
+            openSection[3],
+            openSection[4],
+        )
+        dao.updateOpenSectionTask(openSectionDB)
+    }
+
+    override suspend fun getOpenSectionTask() : List<Boolean>{
+        val openSection = dao.getOpenSectionTask()
+        return listOf(
+            openSection.today,
+            openSection.tomorrow,
+            openSection.week,
+            openSection.someDay,
+            openSection.doneTask
+        )
     }
 }

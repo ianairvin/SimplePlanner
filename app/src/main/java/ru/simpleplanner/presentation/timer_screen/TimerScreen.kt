@@ -299,13 +299,18 @@ fun TimerNumberOfRepeats(timerVM: TimerVM,
     if(timerVM.numberOfRepeats.value == 4 && timerVM.currentScreen.value == 1 && timerVM.isTimerRunning.value) {
         timerVM.numberOfRepeats.value = 0
     }
-    Row( modifier = Modifier
-        .padding(0.dp, 40.dp, 0.dp, 0.dp)
-        .clickable (
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = { openAlertDialogNumberOfRepeat.value = true }
-        ),
+    Row( modifier = if(timerVM.isTimerRunning.value) {
+                        Modifier
+                            .padding(0.dp, 40.dp, 0.dp, 0.dp)
+                    } else {
+                        Modifier
+                            .padding(0.dp, 40.dp, 0.dp, 0.dp)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = { openAlertDialogNumberOfRepeat.value = true }
+                            )
+                    },
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically){
         Icon(
@@ -358,32 +363,15 @@ fun TimerNumberOfRepeats(timerVM: TimerVM,
 @SuppressLint("AutoboxingStateValueProperty")
 @Composable
 fun TimerButtons(timerVM: TimerVM) {
-    Row(
-        modifier = Modifier.padding(0.dp, 120.dp, 0.dp, 60.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier.padding(0.dp, 100.dp, 0.dp, 40.dp).height(124.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (timerVM.isTimerRunning.value) {
             Button(
                 modifier = Modifier
                     .height(48.dp)
-                    .width(132.dp),
-                shape = RoundedCornerShape(36.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorScheme.errorContainer,
-                    contentColor = colorScheme.onErrorContainer
-                ),
-                onClick = {
-                    timerVM.resetTimer()
-                }
-            ) {
-                Text(text = "Сброс")
-            }
-            Spacer(modifier = Modifier.padding(4.dp))
-            Button(
-                modifier = Modifier
-                    .height(48.dp)
-                    .width(132.dp),
+                    .width(160.dp),
                 shape = RoundedCornerShape(36.dp),
                 onClick = {
                     if (timerVM.isTimerOnPause.value) {
@@ -406,11 +394,27 @@ fun TimerButtons(timerVM: TimerVM) {
             ) {
                 Text(text = if (timerVM.isTimerOnPause.value) "Возобновить" else "Пауза")
             }
+            Spacer(modifier = Modifier.padding(8.dp))
+            Button(
+                modifier = Modifier
+                    .height(48.dp)
+                    .width(160.dp),
+                shape = RoundedCornerShape(36.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.errorContainer,
+                    contentColor = colorScheme.onErrorContainer
+                ),
+                onClick = {
+                    timerVM.resetTimer()
+                }
+            ) {
+                Text(text = "Сброс")
+            }
         } else {
             Button(
                 modifier = Modifier
                     .height(48.dp)
-                    .width(132.dp),
+                    .width(160.dp),
                 shape = RoundedCornerShape(36.dp),
                 onClick = {
                     timerVM.isTimerRunning.value = true

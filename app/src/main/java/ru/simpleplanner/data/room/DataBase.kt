@@ -4,7 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [TaskDB::class, TimerDB::class, PickedCalendarsDB::class],
+    entities = [TaskDB::class, TimerDB::class, PickedCalendarsDB::class, OpenSectionTaskDB::class],
     version = 1
 )
 

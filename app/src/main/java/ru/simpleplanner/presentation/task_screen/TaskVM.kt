@@ -13,6 +13,7 @@ import ru.simpleplanner.domain.use_case.task_uc.EditStatusTaskUseCase
 import ru.simpleplanner.domain.use_case.task_uc.GetOneTaskUseCase
 import ru.simpleplanner.domain.use_case.task_uc.GetTasksUseCase
 import ru.simpleplanner.domain.use_case.task_uc.InsertTaskUseCase
+import ru.simpleplanner.domain.use_case.task_uc.OpenSectionTaskUseCase
 import ru.simpleplanner.domain.use_case.task_uc.UpdateTaskUseCase
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -26,6 +27,7 @@ class TaskVM @Inject constructor(
     private val getTasksUseCase: GetTasksUseCase,
     private val editStatusTaskUseCase: EditStatusTaskUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
+    private val openSectionTaskUseCase: OpenSectionTaskUseCase
 ): ViewModel() {
 
     var tasksListToday = getTasksUseCase("Today")
@@ -33,6 +35,12 @@ class TaskVM @Inject constructor(
     var tasksListWeek = getTasksUseCase("Week")
     var tasksListSomeDay = getTasksUseCase("SomeDay")
     var tasksListDone = getTasksUseCase("Done")
+
+    val todayListOpen =  mutableStateOf(false)
+    val tomorrowListOpen = mutableStateOf(false)
+    val weekListOpen = mutableStateOf(false)
+    val someDayListOpen = mutableStateOf(false)
+    val doneListOpen = mutableStateOf(false)
 
     val titleForBottomSheet =  mutableStateOf("")
     val priorityForBottomSheet =  mutableStateOf(arrayOf("Нет", "0"))
@@ -107,5 +115,28 @@ class TaskVM @Inject constructor(
     @SuppressLint("AutoboxingStateValueProperty")
     fun deleteTask() = viewModelScope.launch{
         deleteTaskUseCase(idForBottomSheet.value)
+    }
+
+    fun saveOpenSection() = viewModelScope.launch{
+        openSectionTaskUseCase.updateOpenSectionTask(
+            listOf(
+                todayListOpen.value,
+                tomorrowListOpen.value,
+                weekListOpen.value,
+                someDayListOpen.value,
+                doneListOpen.value
+            )
+        )
+    }
+
+    init{
+        viewModelScope.launch{
+            val openSection = openSectionTaskUseCase.getOpenSectionTask()
+            todayListOpen.value =  openSection[0]
+            tomorrowListOpen.value = openSection[1]
+            weekListOpen.value = openSection[2]
+            someDayListOpen.value = openSection[3]
+            doneListOpen.value = openSection[4]
+        }
     }
 }

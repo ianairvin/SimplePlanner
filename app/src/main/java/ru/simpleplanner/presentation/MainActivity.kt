@@ -141,6 +141,7 @@ class MainActivity : ComponentActivity(
         super.onStop()
         timerVM.saveTime()
         eventVM.savePickedCalendars()
+        taskVM.saveOpenSection()
     }
     @Composable
     fun UiController(darkTheme: Boolean){

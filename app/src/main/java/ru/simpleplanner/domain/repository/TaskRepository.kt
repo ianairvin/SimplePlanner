@@ -13,4 +13,8 @@ interface TaskRepository {
     suspend fun deleteTask(id: Int)
 
     suspend fun getTasksForSpecificDay(date: LocalDate) : List<Task>
+
+    suspend fun updateOpenSectionTask(openSection: List<Boolean>)
+
+    suspend fun getOpenSectionTask() : List<Boolean>
 }

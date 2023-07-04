@@ -129,11 +129,6 @@ fun TaskScreenContent(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState
 ) {
-    val todayListOpen = remember { mutableStateOf(false) }
-    val tomorrowListOpen = remember { mutableStateOf(false) }
-    val weekListOpen = remember { mutableStateOf(false) }
-    val someDayListOpen = remember { mutableStateOf(false) }
-    val doneListOpen = remember { mutableStateOf(false) }
 
     val interactionSource = MutableInteractionSource()
 
@@ -142,52 +137,52 @@ fun TaskScreenContent(
             .padding(0.dp, 32.dp, 0.dp, 32.dp)
     ) {
         item {
-            TitleSectionTaskScreen(todayListOpen, "Сегодня", interactionSource)
+            TitleSectionTaskScreen(taskVM.todayListOpen, "Сегодня", interactionSource)
         }
-        if (todayListOpen.value && tasksListToday.value.isNotEmpty()) {
+        if (taskVM.todayListOpen.value && tasksListToday.value.isNotEmpty()) {
             itemsIndexed(tasksListToday.value.sortedBy { it.makeDateTime })
             { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
-        } else if (todayListOpen.value){
+        } else if (taskVM.todayListOpen.value){
             item { NoTasksMessage() }
         }
 
         item {
-            TitleSectionTaskScreen(tomorrowListOpen, "Завтра", interactionSource)
+            TitleSectionTaskScreen(taskVM.tomorrowListOpen, "Завтра", interactionSource)
         }
-        if (tomorrowListOpen.value && tasksListTomorrow.value.isNotEmpty()) {
+        if (taskVM.tomorrowListOpen.value && tasksListTomorrow.value.isNotEmpty()) {
             itemsIndexed(tasksListTomorrow.value.sortedBy { it.makeDateTime })
             { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
-        } else if (tomorrowListOpen.value){
+        } else if (taskVM.tomorrowListOpen.value){
             item { NoTasksMessage() }
         }
 
         item {
-            TitleSectionTaskScreen(weekListOpen, "На неделе", interactionSource)
+            TitleSectionTaskScreen(taskVM.weekListOpen, "На неделе", interactionSource)
         }
-        if (weekListOpen.value && tasksListWeek.value.isNotEmpty()) {
+        if (taskVM.weekListOpen.value && tasksListWeek.value.isNotEmpty()) {
             itemsIndexed(tasksListWeek.value.sortedBy { it.makeDateTime })
             { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
-        } else if (weekListOpen.value){
+        } else if (taskVM.weekListOpen.value){
             item { NoTasksMessage() }
         }
 
         item {
-            TitleSectionTaskScreen(someDayListOpen, "Когда-нибудь", interactionSource)
+            TitleSectionTaskScreen(taskVM.someDayListOpen, "Когда-нибудь", interactionSource)
         }
-        if (someDayListOpen.value && tasksListSomeDay.value.isNotEmpty()) {
+        if (taskVM.someDayListOpen.value && tasksListSomeDay.value.isNotEmpty()) {
             itemsIndexed(tasksListSomeDay.value.sortedBy { it.makeDateTime })
             { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
-        } else if (someDayListOpen.value){
+        } else if (taskVM.someDayListOpen.value){
             item { NoTasksMessage() }
         }
 
         item {
-            TitleSectionTaskScreen(doneListOpen, "Выполненные", interactionSource)
+            TitleSectionTaskScreen(taskVM.doneListOpen, "Выполненные", interactionSource)
         }
-        if (doneListOpen.value && tasksListDone.value.isNotEmpty()) {
+        if (taskVM.doneListOpen.value && tasksListDone.value.isNotEmpty()) {
             itemsIndexed(tasksListDone.value.sortedBy { it.makeDateTime })
             { _, item -> ListTasks(item, taskVM, scope, scaffoldState, interactionSource) }
-        } else if (doneListOpen.value) {
+        } else if (taskVM.doneListOpen.value) {
             item { NoTasksMessage() }
         }
     }

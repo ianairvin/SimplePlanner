@@ -30,9 +30,9 @@ interface Dao {
     @Query("SELECT * FROM task WHERE (`check` = 1 AND date < :dateNow) ORDER BY make_date_time ASC")
     fun getDoneTask(dateNow: Long) : Flow<List<TaskDB>>
 
-    @Query("SELECT * FROM task WHERE date = :date" +
+    @Query("SELECT * FROM task WHERE date = :date AND date > :dateToday" +
             " ORDER BY make_date_time ASC")
-    suspend fun getTasksForSpecificDay(date: Long) : List<TaskDB>
+    suspend fun getTasksForSpecificDay(date: Long, dateToday: Long) : List<TaskDB>
 
     @Query("SELECT * FROM task WHERE date = :date" +
             " OR (`check` = 0 AND date < :date)" +
@@ -77,5 +77,11 @@ interface Dao {
 
     @Query("DELETE FROM picked_calendar")
     suspend fun deleteAllPickedCalendarsId()
+
+    @Update
+    suspend fun updateOpenSectionTask(section: OpenSectionTaskDB)
+
+    @Query("SELECT * FROM open_section_task")
+    suspend fun getOpenSectionTask() : OpenSectionTaskDB
 
 }
