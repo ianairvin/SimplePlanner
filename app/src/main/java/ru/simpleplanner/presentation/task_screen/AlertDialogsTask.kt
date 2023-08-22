@@ -14,22 +14,28 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ru.simpleplanner.R
 import ru.simpleplanner.presentation.ui.theme.priority_blue
@@ -37,6 +43,82 @@ import ru.simpleplanner.presentation.ui.theme.priority_green
 import ru.simpleplanner.presentation.ui.theme.priority_purple
 import ru.simpleplanner.presentation.ui.theme.priority_red
 import ru.simpleplanner.presentation.ui.theme.priority_yellow
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TaskAlertDialogChooseDate(
+    dateForBottomSheet: MutableState<LocalDate>,
+    openDialog: MutableState<Boolean>,
+    taskVM: TaskVM
+){
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = dateForBottomSheet.value.atStartOfDay(ZoneOffset.of("Z")).toInstant().toEpochMilli())
+    DatePickerDialog(
+        onDismissRequest = { openDialog.value = false },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    openDialog.value = false
+                        dateForBottomSheet.value =
+                                Instant.ofEpochMilli(datePickerState.selectedDateMillis!!)
+                                    .atZone(ZoneId.systemDefault()).toLocalDate()
+
+                },
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    openDialog.value = false
+                }
+            ) {
+                Text("Cancel")
+            }
+        }
+    ) {
+        DatePicker(
+            state = datePickerState,
+            title = { },
+            showModeToggle = false
+        )
+
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(36.dp, 0.dp, 32.dp, 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            Text(
+                text = "Without date",
+                modifier = Modifier.weight(3f)
+                ,
+                textAlign = TextAlign.Start
+            )
+            Spacer(modifier = Modifier.padding(2.dp))
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.End
+            ) {
+                val checked by remember {
+                    mutableStateOf(taskVM.withoutDateForBottomSheet)}
+                Switch(
+                    checked = taskVM.withoutDateForBottomSheet.value,
+                    onCheckedChange = {
+                        checked.value = it
+                        taskVM.withoutDateForBottomSheet.value = it
+                    })
+            }
+        }
+    }
+}
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

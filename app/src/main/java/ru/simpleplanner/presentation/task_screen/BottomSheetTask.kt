@@ -2,7 +2,6 @@ package ru.simpleplanner.presentation.task_screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -37,11 +35,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.vanpra.composematerialdialogs.MaterialDialog
-import com.vanpra.composematerialdialogs.MaterialDialogState
-import com.vanpra.composematerialdialogs.datetime.date.DatePickerDefaults
-import com.vanpra.composematerialdialogs.datetime.date.datepicker
-import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ru.simpleplanner.R
@@ -51,7 +44,6 @@ import ru.simpleplanner.presentation.ui.theme.priority_green
 import ru.simpleplanner.presentation.ui.theme.priority_purple
 import ru.simpleplanner.presentation.ui.theme.priority_red
 import ru.simpleplanner.presentation.ui.theme.priority_yellow
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -98,7 +90,7 @@ fun TaskBottomSheetContent(
 ) {
     val interactionSource = MutableInteractionSource()
 
-    val dateDialogState = rememberMaterialDialogState()
+    val openDialogDatePicker = remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -108,7 +100,7 @@ fun TaskBottomSheetContent(
     ){
         TaskBottomSheetTitle(taskVM)
         Spacer(modifier = Modifier.padding(8.dp))
-        TaskBottomSheetDate(dateDialogState, taskVM, interactionSource)
+        TaskBottomSheetDate(openDialogDatePicker, taskVM, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
         TaskBottomSheetPriority(taskVM, openAlertDialogPriority, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
@@ -116,7 +108,10 @@ fun TaskBottomSheetContent(
         Spacer(modifier = Modifier.padding(8.dp))
         TaskBottomSheetButtons(scope, scaffoldState, taskVM)
     }
-    TaskBottomSheetDatePicker(dateDialogState, taskVM)
+
+    if(openDialogDatePicker.value) {
+        TaskAlertDialogChooseDate(taskVM.dateForBottomSheet, openDialogDatePicker, taskVM)
+    }
 }
 
 @Composable
@@ -137,39 +132,8 @@ fun TaskBottomSheetTitle(taskVM: TaskVM){
 }
 
 @Composable
-fun TaskBottomSheetWithoutDate(
-    taskVM: TaskVM
-){
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(36.dp, 0.dp, 32.dp, 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ){
-        Text(
-            text = "Без даты",
-            modifier = Modifier.weight(3f)
-            ,
-            textAlign = TextAlign.Start
-        )
-        Spacer(modifier = Modifier.padding(2.dp))
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.End
-        ) {
-            val checked by remember {
-                mutableStateOf(taskVM.withoutDateForBottomSheet)}
-            Switch(
-                checked = taskVM.withoutDateForBottomSheet.value,
-                onCheckedChange = {
-                    checked.value = it
-                    taskVM.withoutDateForBottomSheet.value = it
-                })
-        }
-    }
-}
-@Composable
 fun TaskBottomSheetDate(
-    dateDialogState: MaterialDialogState,
+    openDialogDatePicker: MutableState<Boolean>,
     taskVM: TaskVM,
     interactionSource: MutableInteractionSource
 ){
@@ -177,7 +141,7 @@ fun TaskBottomSheetDate(
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
-                .ofPattern("dd LLL u", Locale("ru"))
+                .ofPattern("dd LLL u", Locale("en"))
                 .format(
                     taskVM.dateForBottomSheet.value
                 )
@@ -186,7 +150,7 @@ fun TaskBottomSheetDate(
 
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
-            text = "День",
+            text = "Date",
             modifier = Modifier
                 .weight(5f),
             textAlign = TextAlign.Start,
@@ -198,7 +162,7 @@ fun TaskBottomSheetDate(
             .weight(6f)
             .clickable(
                 interactionSource = interactionSource,
-                onClick = { dateDialogState.show() },
+                onClick = { openDialogDatePicker.value = true },
                 indication = null
             ),
             horizontalArrangement = Arrangement.End) {
@@ -302,44 +266,6 @@ fun TaskBottomSheetPriority(
         }
     }
 }
-
-@Composable
-fun TaskBottomSheetDatePicker(
-    dateDialogState: MaterialDialogState,
-    taskVM: TaskVM
-){
-    var pickedDateTemporal = if(taskVM.withoutDateForBottomSheet.value) LocalDate.now()
-                                else taskVM.dateForBottomSheet.value
-    MaterialDialog(
-        dialogState = dateDialogState,
-        backgroundColor = colorScheme.background,
-        buttons = {
-            positiveButton(text = "ОК") {
-                taskVM.dateForBottomSheet.value = pickedDateTemporal
-            }
-            negativeButton(text = "Отмена")
-        },
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        datepicker(
-            initialDate = pickedDateTemporal,
-            title = "",
-            locale = Locale("ru"),
-            colors = DatePickerDefaults.colors(
-                dateActiveBackgroundColor = colorScheme.primary,
-                dateInactiveTextColor = colorScheme.onBackground,
-                headerBackgroundColor = colorScheme.primary,
-                headerTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
-                calendarHeaderTextColor = colorScheme.onBackground,
-                dateActiveTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
-            )
-        ) {
-            pickedDateTemporal = it
-        }
-        TaskBottomSheetWithoutDate(taskVM = taskVM)
-    }
-}
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
