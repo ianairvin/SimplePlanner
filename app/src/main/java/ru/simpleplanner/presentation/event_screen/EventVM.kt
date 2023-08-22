@@ -71,8 +71,8 @@ class EventVM @Inject constructor(
     val calendarDisplayNameForBottomSheet = mutableStateOf("")
     val titleForBottomSheet =  mutableStateOf("")
     val locationForBottomSheet =  mutableStateOf("")
-    val startForBottomSheet = mutableStateOf(LocalTime.now())
-    val endForBottomSheet = mutableStateOf(LocalTime.now().plusHours(1))
+    val startForBottomSheet = mutableStateOf(LocalTime.now().plusHours(1).withMinute(0))
+    val endForBottomSheet = mutableStateOf(startForBottomSheet.value.plusHours(1))
     val allDayForBottomSheet = mutableIntStateOf(0)
     val repeatRuleForBottomSheet =  mutableStateOf(arrayOf("Нет", ""))
     val descriptionForBottomSheet = mutableStateOf("")
@@ -109,8 +109,8 @@ class EventVM @Inject constructor(
             } else { "" }
         titleForBottomSheet.value = ""
         locationForBottomSheet.value =  ""
-        startForBottomSheet.value = LocalTime.now()
-        endForBottomSheet.value = LocalTime.now().plusHours(1)
+        startForBottomSheet.value = LocalTime.now().plusHours(1).withMinute(0)
+        endForBottomSheet.value = startForBottomSheet.value.plusHours(1)
         allDayForBottomSheet.value = 0
         repeatRuleForBottomSheet.value = arrayOf("Нет", "")
         descriptionForBottomSheet.value = ""

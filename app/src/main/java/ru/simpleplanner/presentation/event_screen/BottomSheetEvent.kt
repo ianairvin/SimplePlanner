@@ -62,8 +62,6 @@ fun CalendarBottomSheet(
     val openDialogDatePicker = remember { mutableStateOf(false) }
     val openDialogTimePicker = remember { mutableStateOf(false) }
     val isTimePickerStart = remember { mutableStateOf(true)}
-    val stateTimeStart = rememberTimePickerState(initialHour = eventVM.startForBottomSheet.value.hour, initialMinute = 0)
-    val stateTimeEnd = rememberTimePickerState(initialHour = eventVM.endForBottomSheet.value.hour, initialMinute = 0)
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -99,13 +97,14 @@ fun CalendarBottomSheet(
         CalendarAlertDialogEventLocation(openAlertDialogLocation, eventVM)
     }
     if(openDialogDatePicker.value) {
-        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker)
+        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker, true)
     }
     if(openDialogTimePicker.value) {
         CalendarDialogChooseTime(
             eventVM,
             openDialogTimePicker,
-            if (isTimePickerStart.value) stateTimeStart else stateTimeEnd,
+            eventVM.startForBottomSheet,
+            eventVM.endForBottomSheet,
             isTimePickerStart
         )
     }
@@ -195,14 +194,14 @@ fun CalendarBottomSheetEventDateAndTime(
     val formattedTimeStart by remember {
         derivedStateOf {
             DateTimeFormatter
-                .ofPattern(if(is24Hour) "HH:mm" else "HH:mm a")
+                .ofPattern(if(is24Hour) "HH:mm" else "hh:mm a")
                 .format(eventVM.startForBottomSheet.value)
         }
     }
     val formattedTimeEnd by remember {
         derivedStateOf {
             DateTimeFormatter
-                .ofPattern(if(is24Hour) "HH:mm" else "HH:mm a")
+                .ofPattern(if(is24Hour) "HH:mm" else "hh:mm a")
                 .format(eventVM.endForBottomSheet.value)
         }
     }

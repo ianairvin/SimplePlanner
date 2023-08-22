@@ -1,7 +1,9 @@
 package ru.simpleplanner.presentation.event_screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -27,6 +31,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -36,6 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import ru.simpleplanner.domain.entities.Calendar
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -49,38 +56,36 @@ import java.util.Locale
 fun CalendarDialogChooseTime(
     eventVM: EventVM,
     openDialog: MutableState<Boolean>,
-    state: TimePickerState,
+    start: MutableState<LocalTime>,
+    end: MutableState<LocalTime>,
     isTimePickerStart: MutableState<Boolean>){
    // val formatter = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
-    DatePickerDialog(
-        onDismissRequest = { openDialog.value = false },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    openDialog.value = false
-                    if(isTimePickerStart.value){
-                        eventVM.startForBottomSheet.value =
-                            LocalTime.of(state.hour, state.minute)
-                    } else {
-                     eventVM.endForBottomSheet.value =
-                         LocalTime.of(state.hour, state.minute)
+    val state = rememberTimePickerState(
+        initialHour = if(isTimePickerStart.value) start.value.hour else end.value.hour,
+        initialMinute = 0)
+    TimePickerDialog(
+        title = "",
+        onConfirm = {
+                openDialog.value = false
+                if(isTimePickerStart.value){
+                    start.value =
+                        LocalTime.of(state.hour, state.minute)
+                    if(end.value < start.value){
+                        end.value =
+                            start.value.plusHours(1)
                     }
-                },
-            ) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = {
-                    openDialog.value = false
+                } else {
+                 end.value =
+                     LocalTime.of(state.hour, state.minute)
+                 if(end.value < start.value) {
+                     start.value = end.value.minusHours(1)
+                 }
                 }
-            ) {
-                Text("Cancel")
-            }
+            },
+        onCancel  = {
+            openDialog.value = false
         }
     ) {
-
         TimePicker(state = state)
     }
 }
@@ -89,7 +94,8 @@ fun CalendarDialogChooseTime(
 @Composable
 fun CalendarAlertDialogChooseDate(
     eventVM: EventVM,
-    openDialog: MutableState<Boolean>
+    openDialog: MutableState<Boolean>,
+    isDatePickerInBottomSheet: Boolean
 ){
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = eventVM.selectedDate.value.atStartOfDay(ZoneOffset.of("Z")).toInstant().toEpochMilli())
@@ -99,11 +105,19 @@ fun CalendarAlertDialogChooseDate(
             TextButton(
                 onClick = {
                     openDialog.value = false
-                    eventVM.selectedDate.value =
-                        datePickerState.selectedDateMillis?.let {
-                            Instant.ofEpochMilli(it)
-                                .atZone(ZoneId.systemDefault()).toLocalDate()
-                        }!!
+                    if (isDatePickerInBottomSheet){
+                        eventVM.pickedDateForBottomSheet.value =
+                            datePickerState.selectedDateMillis?.let {
+                                Instant.ofEpochMilli(it)
+                                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                            }!!
+                    } else {
+                        eventVM.selectedDate.value =
+                            datePickerState.selectedDateMillis?.let {
+                                Instant.ofEpochMilli(it)
+                                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                            }!!
+                    }
                 },
             ) {
                 Text("OK")
@@ -396,6 +410,62 @@ fun CalendarAlertDialogEventLocation(
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("Применить")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TimePickerDialog(
+    title: String = "Select Time",
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+    toggle: @Composable () -> Unit = {},
+    content: @Composable () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        ),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .width(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min)
+                .background(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surface
+                ),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp),
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                content()
+                Row(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .fillMaxWidth()
+                ) {
+                    toggle()
+                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(
+                        onClick = onCancel
+                    ) { Text("Cancel") }
+                    TextButton(
+                        onClick = onConfirm
+                    ) { Text("OK") }
                 }
             }
         }

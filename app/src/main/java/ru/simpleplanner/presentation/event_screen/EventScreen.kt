@@ -1,7 +1,9 @@
 package ru.simpleplanner.presentation.event_screen
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +47,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,7 +84,7 @@ fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () ->
     }
     val openDialogDatePicker = remember { mutableStateOf(false) }
     if(openDialogDatePicker.value) {
-        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker)
+        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker, false)
     }
 
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
@@ -165,7 +168,6 @@ private fun CalendarSettingsTopBar(openAlertDialog: MutableState<Boolean>) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarListEventsDate(eventVM: EventVM, openDialogDatePicker: MutableState<Boolean>) {
     eventVM.getTasks()
@@ -173,7 +175,7 @@ fun CalendarListEventsDate(eventVM: EventVM, openDialogDatePicker: MutableState<
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
-                .ofPattern("dd MMM yyyy", Locale("ru"))
+                .ofPattern("dd MMM yyyy", Locale("en"))
                 .format(eventVM.selectedDate.value)
         }
     }
@@ -191,7 +193,7 @@ fun CalendarListEventsDate(eventVM: EventVM, openDialogDatePicker: MutableState<
                 containerColor = colorScheme.primary,
                 contentColor = md_theme_light_onPrimary
         )) {
-            Text(text = "Выбрать дату")
+            Text(text = "Choose date")
         }
     }
 }
@@ -205,6 +207,9 @@ fun CalendarListEvents(
     scaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM
 ) {
+    val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
+    val interactionSource = MutableInteractionSource()
+
     if (events.value.isNotEmpty() || tasks.value.isNotEmpty()) {
         LazyColumn {
             itemsIndexed(tasks.value)
@@ -217,7 +222,12 @@ fun CalendarListEvents(
                         .alpha(
                             if(checkedState.value) 0.4f else 1.0f
                         )
-                        .padding(28.dp, 8.dp, 24.dp, 8.dp),
+                        /*.clickable(
+                            interactionSource = interactionSource,
+                    indication = null,
+                    onClick = {}
+                        ) */
+                    .padding(28.dp, 8.dp, 24.dp, 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -238,7 +248,7 @@ fun CalendarListEvents(
                             )
                     )
                     Box(
-                        modifier = Modifier.weight(1f).padding(start = 4.dp, end = 8.dp),
+                        modifier = Modifier.weight(if (is24Hour) 1f else 1.5f).padding(start = 4.dp, end = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         if (checkedState.value) {
@@ -300,17 +310,21 @@ fun CalendarListEvents(
                                     && item.allDay == 0))
                                 0.4f else 1.0f)
                         .padding(28.dp, 8.dp, 24.dp, 8.dp)
-                        .clickable {
-                            eventVM.pickedEventForBottomSheet(
-                                item.id,
-                                item.calendarId,
-                                item.start,
-                                item.end
-                            )
-                            scope.launch {
-                                scaffoldState.bottomSheetState.expand()
+                        .clickable (
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = {
+                                eventVM.pickedEventForBottomSheet(
+                                    item.id,
+                                    item.calendarId,
+                                    item.start,
+                                    item.end
+                                )
+                                scope.launch {
+                                    scaffoldState.bottomSheetState.expand()
+                                }
                             }
-                        },
+                        ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -322,16 +336,15 @@ fun CalendarListEvents(
                             .background(Color(item.colorEvent
                                 ?: item.colorCalendar!!)))
                     Box(
-                        modifier = Modifier.weight(1f).padding(start = 4.dp, end = 4.dp),
+                        modifier = Modifier.weight(if (is24Hour) 1f else 1.5f).padding(start = 4.dp, end = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = if (item.allDay == 1) {
-                                "Весь" + "\n" + "день"
+                                "All" + "\n" + "day"
                             } else {
-                                item.start.format(DateTimeFormatter.ofPattern("HH:mm")) + "\n" + item.end.format(
-                                    DateTimeFormatter.ofPattern("HH:mm")
-                                )
+                                item.start.format(DateTimeFormatter.ofPattern(if(is24Hour) "HH:mm" else "hh:mm a")) + "\n" + item.end.format(
+                                    DateTimeFormatter.ofPattern(if(is24Hour) "HH:mm" else "hh:mm a"))
                             },
                             color = colorScheme.onBackground,
                             fontSize = 14.sp
