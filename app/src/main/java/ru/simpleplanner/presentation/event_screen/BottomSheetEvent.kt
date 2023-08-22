@@ -1,6 +1,5 @@
 package ru.simpleplanner.presentation.event_screen
 
-import android.annotation.SuppressLint
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,8 +18,8 @@ import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -34,18 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.vanpra.composematerialdialogs.MaterialDialog
-import com.vanpra.composematerialdialogs.MaterialDialogState
-import com.vanpra.composematerialdialogs.datetime.time.TimePickerDefaults
-import com.vanpra.composematerialdialogs.datetime.time.timepicker
-import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import ru.simpleplanner.SimplePlannerApplication
-import ru.simpleplanner.presentation.MainActivity
 import ru.simpleplanner.presentation.ui.theme.*
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import android.annotation.SuppressLint as SuppressLint1
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,38 +65,50 @@ fun CalendarBottomSheet(
         sheetContent = { CalendarBottomSheetEventContent(
             scope,
             scaffoldState,
-            eventVM,
             openAlertDialogCalendars,
             openAlertDialogDescription,
             openAlertDialogRepeatRule,
             openAlertDialogLocation,
             openDialogDatePicker,
             openDialogTimePicker,
-            isTimePickerStart
+            isTimePickerStart,
+            eventVM.pickedDateForBottomSheet,
+            eventVM.startForBottomSheet,
+            eventVM.endForBottomSheet,
+            eventVM.allDayForBottomSheet,
+            eventVM.repeatRuleForBottomSheet,
+            eventVM.calendarDisplayNameForBottomSheet,
+            eventVM::deleteEvent,
+            eventVM::saveOrUpdateEvent,
+            eventVM.updaterBottomSheet,
+            eventVM.titleForBottomSheet
         ) }
     ){}
 
     if(openAlertDialogCalendars.value) {
-        CalendarAlertDialogListCalendarsForEvent(openAlertDialogCalendars, eventVM)
+        CalendarAlertDialogListCalendarsForEvent(
+            openAlertDialogCalendars,
+            eventVM.calendarDisplayNameForBottomSheet,
+            eventVM.calendarIdForBottomSheet,
+            eventVM.calendarsList)
     }
 
     if(openAlertDialogDescription.value) {
-        CalendarAlertDialogEventDescription(openAlertDialogDescription, eventVM)
+        CalendarAlertDialogEventDescription(openAlertDialogDescription, eventVM.descriptionForBottomSheet)
     }
 
     if(openAlertDialogRepeatRule.value) {
-        CalendarAlertDialogEventRepeatRule(openAlertDialogRepeatRule, eventVM)
+        CalendarAlertDialogEventRepeatRule(openAlertDialogRepeatRule, eventVM.repeatRuleForBottomSheet, eventVM.repeatRule)
     }
 
     if(openAlertDialogLocation.value) {
-        CalendarAlertDialogEventLocation(openAlertDialogLocation, eventVM)
+        CalendarAlertDialogEventLocation(openAlertDialogLocation, eventVM.locationForBottomSheet)
     }
     if(openDialogDatePicker.value) {
-        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker, true)
+        CalendarAlertDialogChooseDate(eventVM.selectedDate, eventVM.pickedDateForBottomSheet, openDialogDatePicker, true)
     }
     if(openDialogTimePicker.value) {
         CalendarDialogChooseTime(
-            eventVM,
             openDialogTimePicker,
             eventVM.startForBottomSheet,
             eventVM.endForBottomSheet,
@@ -115,14 +122,23 @@ fun CalendarBottomSheet(
 fun CalendarBottomSheetEventContent(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
-    eventVM: EventVM,
     openAlertDialogCalendars: MutableState<Boolean>,
     openAlertDialogDescription: MutableState<Boolean>,
     openAlertDialogRepeatRule: MutableState<Boolean>,
     openAlertDialogLocation: MutableState<Boolean>,
     openDialogDatePicker: MutableState<Boolean>,
     openDialogTimePicker: MutableState<Boolean>,
-    isTimePickerStart: MutableState<Boolean>
+    isTimePickerStart: MutableState<Boolean>,
+    pickedDateForBottomSheet: MutableState<LocalDate>,
+    startForBottomSheet: MutableState<LocalTime>,
+    endForBottomSheet: MutableState<LocalTime>,
+    allDayForBottomSheet: MutableIntState,
+    repeatRuleForBottomSheet: MutableState<Array<String>>,
+    calendarDisplayNameForBottomSheet: MutableState<String>,
+    deleteEvent: () -> Unit,
+    saveOrUpdateEvent: () -> Unit,
+    updaterBottomSheet: MutableState<Boolean>,
+    titleForBottomSheet: MutableState<String>
 ) {
 
     val interactionSource = MutableInteractionSource()
@@ -133,39 +149,47 @@ fun CalendarBottomSheetEventContent(
             .fillMaxWidth()
             .padding(32.dp, 0.dp, 32.dp, 0.dp)
     ){
-        CalendarBottomSheetEventTitle(eventVM)
+        CalendarBottomSheetEventTitle(titleForBottomSheet)
         Spacer(modifier = Modifier.padding(8.dp))
         CalendarBottomSheetEventDateAndTime(
             openDialogDatePicker,
             openDialogTimePicker,
             isTimePickerStart,
-            eventVM
+            pickedDateForBottomSheet,
+            startForBottomSheet,
+            endForBottomSheet,
+            allDayForBottomSheet
         )
         Spacer(modifier = Modifier.padding(8.dp))
-        CalendarBottomSheetEventAllDay(eventVM)
+        CalendarBottomSheetEventAllDay(allDayForBottomSheet)
         Spacer(modifier = Modifier.padding(8.dp))
-        CalendarBottomSheetEventRepeatRule(eventVM, openAlertDialogRepeatRule, interactionSource)
+        CalendarBottomSheetEventRepeatRule(repeatRuleForBottomSheet, openAlertDialogRepeatRule, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        CalendarBottomSheetEventCalendar(openAlertDialogCalendars, eventVM, interactionSource)
+        CalendarBottomSheetEventCalendar(openAlertDialogCalendars, calendarDisplayNameForBottomSheet, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
         CalendarBottomSheetEventDescription(openAlertDialogDescription, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
         CalendarBottomSheetEventLocation(openAlertDialogLocation, interactionSource)
         Spacer(modifier = Modifier.padding(8.dp))
-        CalendarBottomSheetButtons(scope, scaffoldState, eventVM)
+        CalendarBottomSheetButtons(
+            scope,
+            scaffoldState,
+            deleteEvent,
+            saveOrUpdateEvent,
+            updaterBottomSheet)
     }
 }
 
 @Composable
-fun CalendarBottomSheetEventTitle(eventVM: EventVM){
+fun CalendarBottomSheetEventTitle(titleForBottomSheet: MutableState<String>){
     Row(
         modifier = Modifier
             .fillMaxWidth()
     ){
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            value = eventVM.titleForBottomSheet.value,
-            onValueChange = { eventVM.titleForBottomSheet.value = it },
+            value = titleForBottomSheet.value,
+            onValueChange = { titleForBottomSheet.value = it },
             label = { Text(text = "Введите название") },
             shape = RoundedCornerShape(16.dp),
             singleLine = true
@@ -173,19 +197,22 @@ fun CalendarBottomSheetEventTitle(eventVM: EventVM){
     }
 }
 
-@SuppressLint("AutoboxingStateValueProperty")
+@SuppressLint1("AutoboxingStateValueProperty")
 @Composable
 fun CalendarBottomSheetEventDateAndTime(
     openDialogDatePicker: MutableState<Boolean>,
     openDialogTimePicker: MutableState<Boolean>,
     isTimePickerStart: MutableState<Boolean>,
-    eventVM: EventVM
+    pickedDateForBottomSheet: MutableState<LocalDate>,
+    startForBottomSheet: MutableState<LocalTime>,
+    endForBottomSheet: MutableState<LocalTime>,
+    allDayForBottomSheet: MutableIntState
     ){
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
                 .ofPattern("dd LLL", Locale("en"))
-                .format(eventVM.pickedDateForBottomSheet.value)
+                .format(pickedDateForBottomSheet.value)
         }
     }
 
@@ -195,14 +222,14 @@ fun CalendarBottomSheetEventDateAndTime(
         derivedStateOf {
             DateTimeFormatter
                 .ofPattern(if(is24Hour) "HH:mm" else "hh:mm a")
-                .format(eventVM.startForBottomSheet.value)
+                .format(startForBottomSheet.value)
         }
     }
     val formattedTimeEnd by remember {
         derivedStateOf {
             DateTimeFormatter
                 .ofPattern(if(is24Hour) "HH:mm" else "hh:mm a")
-                .format(eventVM.endForBottomSheet.value)
+                .format(endForBottomSheet.value)
         }
     }
     Row(
@@ -251,7 +278,7 @@ fun CalendarBottomSheetEventDateAndTime(
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Box(
-                modifier = if(eventVM.allDayForBottomSheet.value == 0) {
+                modifier = if(allDayForBottomSheet.value == 0) {
                     Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
                         .background(colorScheme.outlineVariant)
@@ -271,9 +298,9 @@ fun CalendarBottomSheetEventDateAndTime(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if(eventVM.allDayForBottomSheet.value == 0) formattedTimeStart else "-",
+                    text = if(allDayForBottomSheet.value == 0) formattedTimeStart else "-",
                     textAlign = TextAlign.Center,
-                    color = if(eventVM.allDayForBottomSheet.value == 0)
+                    color = if(allDayForBottomSheet.value == 0)
                         colorScheme.onBackground else colorScheme.outline
                 )
             }
@@ -293,7 +320,7 @@ fun CalendarBottomSheetEventDateAndTime(
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Box(
-                modifier = if(eventVM.allDayForBottomSheet.value == 0) {
+                modifier = if(allDayForBottomSheet.value == 0) {
                     Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
                         .background(colorScheme.outlineVariant)
@@ -312,9 +339,9 @@ fun CalendarBottomSheetEventDateAndTime(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if(eventVM.allDayForBottomSheet.value == 0) formattedTimeEnd else "-",
+                    text = if(allDayForBottomSheet.value == 0) formattedTimeEnd else "-",
                     textAlign = TextAlign.Center,
-                    color = if(eventVM.allDayForBottomSheet.value == 0)
+                    color = if(allDayForBottomSheet.value == 0)
                         colorScheme.onBackground else colorScheme.outline
                 )
             }
@@ -324,13 +351,13 @@ fun CalendarBottomSheetEventDateAndTime(
 
 @Composable
 fun CalendarBottomSheetEventRepeatRule(
-    eventVM: EventVM,
+    repeatRuleForBottomSheet: MutableState<Array<String>>,
     openAlertDialogRepeatRule: MutableState<Boolean>,
     interactionSource: MutableInteractionSource
 ){
     Row(modifier = Modifier.fillMaxWidth()){
         Text(
-            text = "Повтор",
+            text = "Repeat",
             modifier = Modifier
                 .weight(5f),
             textAlign = TextAlign.Start
@@ -345,7 +372,7 @@ fun CalendarBottomSheetEventRepeatRule(
             ),
             horizontalArrangement = Arrangement.End) {
             Text(
-                text = eventVM.repeatRuleForBottomSheet.value[0],
+                text = repeatRuleForBottomSheet.value[0],
                 textAlign = TextAlign.End
             )
             Icon(
@@ -356,10 +383,10 @@ fun CalendarBottomSheetEventRepeatRule(
     }
 }
 
-@SuppressLint("AutoboxingStateValueProperty")
+@SuppressLint1("AutoboxingStateValueProperty")
 @Composable
 fun CalendarBottomSheetEventAllDay(
-    eventVM: EventVM
+    allDayForBottomSheet: MutableIntState
 ){
     Row( modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -376,13 +403,13 @@ fun CalendarBottomSheetEventAllDay(
             horizontalArrangement = Arrangement.End
         ) {
             val checked by remember {
-                mutableStateOf(eventVM.allDayForBottomSheet)}
+                mutableStateOf(allDayForBottomSheet)}
             Switch(
                 checked = checked.value == 1,
                 onCheckedChange = {
                     checked.value = if(it) 1 else 0
-                    if(it) eventVM.allDayForBottomSheet.value = 1
-                    else eventVM.allDayForBottomSheet.value = 0
+                    if(it) allDayForBottomSheet.value = 1
+                    else allDayForBottomSheet.value = 0
                 })
         }
     }
@@ -391,7 +418,7 @@ fun CalendarBottomSheetEventAllDay(
 @Composable
 fun CalendarBottomSheetEventCalendar(
     openAlertDialogCalendars: MutableState<Boolean>,
-    eventVM: EventVM,
+    calendarDisplayNameForBottomSheet: MutableState<String>,
     interactionSource: MutableInteractionSource
 ){
     Row(modifier = Modifier.fillMaxWidth()){
@@ -411,7 +438,7 @@ fun CalendarBottomSheetEventCalendar(
             ),
             horizontalArrangement = Arrangement.End) {
             Text(
-                text = eventVM.calendarDisplayNameForBottomSheet.value,
+                text = calendarDisplayNameForBottomSheet.value,
                 textAlign = TextAlign.End,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
@@ -489,14 +516,16 @@ fun CalendarBottomSheetEventLocation(
 fun CalendarBottomSheetButtons(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
-    eventVM: EventVM
+    deleteEvent: () -> Unit,
+    saveOrUpdateEvent: () -> Unit,
+    updaterBottomSheet: MutableState<Boolean>
 ) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(16.dp, 16.dp, 16.dp, 56.dp),
         horizontalArrangement = Arrangement.Center
     ) {
-        if(eventVM.updaterBottomSheet.value) {
+        if(updaterBottomSheet.value) {
             Button(
                 modifier = Modifier
                     .height(48.dp)
@@ -507,13 +536,13 @@ fun CalendarBottomSheetButtons(
                     contentColor = colorScheme.onErrorContainer
                 ),
                 onClick = {
-                    eventVM.deleteEvent()
+                    deleteEvent()
                     scope.launch {
                         scaffoldState.bottomSheetState.hide()
                     }
                 }
             ) {
-                Text(text = "Удалить")
+                Text(text = "Delete")
             }
             Spacer(modifier = Modifier.padding(8.dp))
             Button(
@@ -522,7 +551,7 @@ fun CalendarBottomSheetButtons(
                     .weight(1f),
                 shape = RoundedCornerShape(36.dp),
                 onClick = {
-                    eventVM.saveOrUpdateEvent()
+                    saveOrUpdateEvent()
                     scope.launch {
                         scaffoldState.bottomSheetState.hide()
                     }
@@ -532,7 +561,7 @@ fun CalendarBottomSheetButtons(
                     contentColor = md_theme_light_onPrimary
                 )
             ) {
-                Text(text = "Изменить")
+                Text(text = "Change")
             }
         } else {
             Button(
@@ -541,7 +570,7 @@ fun CalendarBottomSheetButtons(
                     .width(200.dp),
                 shape = RoundedCornerShape(36.dp),
                 onClick = {
-                    eventVM.saveOrUpdateEvent()
+                    saveOrUpdateEvent()
                     scope.launch {
                         scaffoldState.bottomSheetState.hide()
                     }
@@ -551,7 +580,7 @@ fun CalendarBottomSheetButtons(
                     contentColor = md_theme_light_onPrimary
                 )
             ) {
-                Text(text = "Добавить")
+                Text(text = "Add")
             }
         }
     }

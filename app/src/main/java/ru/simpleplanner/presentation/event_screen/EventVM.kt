@@ -119,25 +119,27 @@ class EventVM @Inject constructor(
     }
 
     @SuppressLint("AutoboxingStateValueProperty")
-    fun pickedEventForBottomSheet(id: String, calendarId: String, start: LocalDateTime, end: LocalDateTime) = viewModelScope.launch{
-        val event = getOneEventUseCase(id, calendarId, start, end)
-        calendarIdForBottomSheet.value = event.calendarId
-        calendarDisplayNameForBottomSheet.value = event.calendarDisplayName
-        titleForBottomSheet.value =  event.title
-        locationForBottomSheet.value =  event.location ?: ""
-        startForBottomSheet.value = event.start.toLocalTime()
-        endForBottomSheet.value = event.end.toLocalTime()
-        allDayForBottomSheet.value = event.allDay
-        repeatRuleForBottomSheet.value = arrayOf("Нет", "")
-        repeatRule.forEach { item ->
-            if (item[1] == event.repeatRule) {
-                repeatRuleForBottomSheet.value = arrayOf(item[0], item[1])
+    fun pickedEventForBottomSheet(id: String, calendarId: String, start: LocalDateTime, end: LocalDateTime) {
+        viewModelScope.launch {
+            val event = getOneEventUseCase(id, calendarId, start, end)
+            calendarIdForBottomSheet.value = event.calendarId
+            calendarDisplayNameForBottomSheet.value = event.calendarDisplayName
+            titleForBottomSheet.value = event.title
+            locationForBottomSheet.value = event.location ?: ""
+            startForBottomSheet.value = event.start.toLocalTime()
+            endForBottomSheet.value = event.end.toLocalTime()
+            allDayForBottomSheet.value = event.allDay
+            repeatRuleForBottomSheet.value = arrayOf("Нет", "")
+            repeatRule.forEach { item ->
+                if (item[1] == event.repeatRule) {
+                    repeatRuleForBottomSheet.value = arrayOf(item[0], item[1])
+                }
             }
+            descriptionForBottomSheet.value = event.description ?: ""
+            pickedDateForBottomSheet.value = event.start.toLocalDate()
+            idEventForBottomSheet.value = event.id
+            updaterBottomSheet.value = true
         }
-        descriptionForBottomSheet.value = event.description ?: ""
-        pickedDateForBottomSheet.value = event.start.toLocalDate()
-        idEventForBottomSheet.value = event.id
-        updaterBottomSheet.value = true
     }
 
     @SuppressLint("AutoboxingStateValueProperty")
@@ -180,18 +182,20 @@ class EventVM @Inject constructor(
         insertEventUseCase(event)
     }
 
-    fun deleteEvent() = viewModelScope.launch {
-        deleteEventUseCase(idEventForBottomSheet.value)
-       // getEvents()
-    }
+    fun deleteEvent() =
+        viewModelScope.launch {
+            deleteEventUseCase(idEventForBottomSheet.value)
+            // getEvents()
+        }
 
     fun savePickedCalendars() = viewModelScope.launch{
         insertPickedCalendarsUseCase(selectedCalendarsId.value)
     }
 
-    fun editStatus(id: Int, check: Boolean) = viewModelScope.launch{
-        editStatusTaskUseCase(id, check)
-    }
+    fun editStatus(id: Int, check: Boolean) =
+        viewModelScope.launch {
+            editStatusTaskUseCase(id, check)
+        }
 
     init{
         getCalendars()

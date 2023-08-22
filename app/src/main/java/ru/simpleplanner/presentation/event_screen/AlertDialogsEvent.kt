@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -29,7 +27,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -43,18 +40,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.Job
 import ru.simpleplanner.domain.entities.Calendar
-import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarDialogChooseTime(
-    eventVM: EventVM,
     openDialog: MutableState<Boolean>,
     start: MutableState<LocalTime>,
     end: MutableState<LocalTime>,
@@ -93,12 +89,13 @@ fun CalendarDialogChooseTime(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarAlertDialogChooseDate(
-    eventVM: EventVM,
+    selectedDate: MutableState<LocalDate>,
+    pickedDateForBottomSheet: MutableState<LocalDate>,
     openDialog: MutableState<Boolean>,
     isDatePickerInBottomSheet: Boolean
 ){
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = eventVM.selectedDate.value.atStartOfDay(ZoneOffset.of("Z")).toInstant().toEpochMilli())
+        initialSelectedDateMillis = selectedDate.value.atStartOfDay(ZoneOffset.of("Z")).toInstant().toEpochMilli())
     DatePickerDialog(
         onDismissRequest = { openDialog.value = false },
         confirmButton = {
@@ -106,13 +103,13 @@ fun CalendarAlertDialogChooseDate(
                 onClick = {
                     openDialog.value = false
                     if (isDatePickerInBottomSheet){
-                        eventVM.pickedDateForBottomSheet.value =
+                        pickedDateForBottomSheet.value =
                             datePickerState.selectedDateMillis?.let {
                                 Instant.ofEpochMilli(it)
                                     .atZone(ZoneId.systemDefault()).toLocalDate()
                             }!!
                     } else {
-                        eventVM.selectedDate.value =
+                        selectedDate.value =
                             datePickerState.selectedDateMillis?.let {
                                 Instant.ofEpochMilli(it)
                                     .atZone(ZoneId.systemDefault()).toLocalDate()
@@ -143,9 +140,11 @@ fun CalendarAlertDialogChooseDate(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>,
-                                       eventVM: EventVM,
-                                       calendars: MutableState<List<Calendar>>) {
+fun CalendarAlertDialogListOfCalendars(
+    openAlertDialog: MutableState<Boolean>,
+    selectedCalendarsId: MutableState<MutableList<String>>,
+    getEvents: Job,
+    calendars: MutableState<List<Calendar>>) {
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
     }) {
@@ -163,7 +162,7 @@ fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>,
             ) {
                 calendars.value.forEach { item ->
                     var checked by remember {
-                        mutableStateOf(eventVM.selectedCalendarsId.value.contains(item.id))
+                        mutableStateOf(selectedCalendarsId.value.contains(item.id))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
@@ -171,11 +170,11 @@ fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>,
                             onCheckedChange = { checked_ ->
                                 checked = checked_
                                 if (checked) {
-                                    eventVM.selectedCalendarsId.value.add(item.id)
+                                    selectedCalendarsId.value.add(item.id)
                                 } else {
-                                    eventVM.selectedCalendarsId.value.remove(item.id)
+                                    selectedCalendarsId.value.remove(item.id)
                                 }
-                                eventVM.getEvents()
+                                getEvents.start()
                             }
                         )
                         Text(
@@ -193,16 +192,18 @@ fun CalendarAlertDialogListOfCalendars(openAlertDialog: MutableState<Boolean>,
 @Composable
 fun CalendarAlertDialogListCalendarsForEvent(
     openAlertDialog: MutableState<Boolean>,
-    eventVM: EventVM
+    calendarDisplayNameForBottomSheet: MutableState<String>,
+    calendarIdForBottomSheet:  MutableState<String>,
+    calendarsList: MutableState<List<Calendar>>
 ){
     val calendarNameTemporal = remember {
-        mutableStateOf(eventVM.calendarDisplayNameForBottomSheet.value)}
+        mutableStateOf(calendarDisplayNameForBottomSheet.value)}
     val calendarIdTemporal = remember {
-        mutableStateOf(eventVM.calendarIdForBottomSheet.value)}
+        mutableStateOf(calendarIdForBottomSheet.value)}
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
-        calendarIdTemporal.value = eventVM.calendarIdForBottomSheet.value
-        calendarNameTemporal.value = eventVM.calendarDisplayNameForBottomSheet.value
+        calendarIdTemporal.value = calendarIdForBottomSheet.value
+        calendarNameTemporal.value = calendarDisplayNameForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -218,14 +219,14 @@ fun CalendarAlertDialogListCalendarsForEvent(
             ) {
                 val (selectedOption, onOptionSelected) = remember {
                     mutableStateOf(
-                        if(eventVM.calendarIdForBottomSheet.value == ""){
-                            eventVM.calendarsList.value[0]
+                        if(calendarIdForBottomSheet.value == ""){
+                            calendarsList.value[0]
                         } else {
-                            eventVM.calendarsList.value.find {
-                                it.id == eventVM.calendarIdForBottomSheet.value
-                            } ?: eventVM.calendarsList.value[0]
+                            calendarsList.value.find {
+                                it.id == calendarIdForBottomSheet.value
+                            } ?: calendarsList.value[0]
                     }) }
-                eventVM.calendarsList.value.forEach { item ->
+                calendarsList.value.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.selectableGroup()) {
                         RadioButton(
@@ -246,8 +247,8 @@ fun CalendarAlertDialogListCalendarsForEvent(
                 TextButton(
                     onClick = {
                         openAlertDialog.value = false
-                        eventVM.calendarDisplayNameForBottomSheet.value = calendarNameTemporal.value
-                        eventVM.calendarIdForBottomSheet.value = calendarIdTemporal.value
+                        calendarDisplayNameForBottomSheet.value = calendarNameTemporal.value
+                        calendarIdForBottomSheet.value = calendarIdTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
@@ -262,13 +263,13 @@ fun CalendarAlertDialogListCalendarsForEvent(
 @Composable
 fun CalendarAlertDialogEventDescription(
     openAlertDialogDescription: MutableState<Boolean>,
-    eventVM: EventVM
+    descriptionForBottomSheet: MutableState<String>
 ){
     val descriptionTemporal = remember {
-        mutableStateOf(eventVM.descriptionForBottomSheet.value) }
+        mutableStateOf(descriptionForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialogDescription.value = false
-        descriptionTemporal.value = eventVM.descriptionForBottomSheet.value
+        descriptionTemporal.value = descriptionForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -297,7 +298,7 @@ fun CalendarAlertDialogEventDescription(
                 TextButton(
                     onClick = {
                         openAlertDialogDescription.value = false
-                        eventVM.descriptionForBottomSheet.value = descriptionTemporal.value
+                        descriptionForBottomSheet.value = descriptionTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
@@ -312,13 +313,14 @@ fun CalendarAlertDialogEventDescription(
 @Composable
 fun CalendarAlertDialogEventRepeatRule(
     openAlertDialogCalendars: MutableState<Boolean>,
-    eventVM: EventVM
+    repeatRuleForBottomSheet: MutableState<Array<String>>,
+    repeatRule: Array<Array<String>>
 ){
     val repeatRuleTemporal = remember {
-        mutableStateOf(eventVM.repeatRuleForBottomSheet.value) }
+        mutableStateOf(repeatRuleForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialogCalendars.value = false
-        repeatRuleTemporal.value = eventVM.repeatRuleForBottomSheet.value
+        repeatRuleTemporal.value = repeatRuleForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -335,7 +337,7 @@ fun CalendarAlertDialogEventRepeatRule(
                 val (selectedOption, onOptionSelected) = remember {
                     mutableStateOf(repeatRuleTemporal.value)
                 }
-                eventVM.repeatRule.forEach { item ->
+                repeatRule.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.selectableGroup()) {
                         RadioButton(
@@ -355,7 +357,7 @@ fun CalendarAlertDialogEventRepeatRule(
                 TextButton(
                     onClick = {
                         openAlertDialogCalendars.value = false
-                        eventVM.repeatRuleForBottomSheet.value = repeatRuleTemporal.value
+                        repeatRuleForBottomSheet.value = repeatRuleTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {
@@ -370,13 +372,13 @@ fun CalendarAlertDialogEventRepeatRule(
 @Composable
 fun CalendarAlertDialogEventLocation(
     openAlertDialog: MutableState<Boolean>,
-    eventVM: EventVM
+    locationForBottomSheet: MutableState<String>,
 ){
     val locationTemporal = remember {
-        mutableStateOf(eventVM.locationForBottomSheet.value) }
+        mutableStateOf(locationForBottomSheet.value) }
     AlertDialog(onDismissRequest = {
         openAlertDialog.value = false
-        locationTemporal.value = eventVM.locationForBottomSheet.value
+        locationTemporal.value = locationForBottomSheet.value
     }) {
         Surface(
             modifier = Modifier
@@ -405,7 +407,7 @@ fun CalendarAlertDialogEventLocation(
                 TextButton(
                     onClick = {
                         openAlertDialog.value = false
-                        eventVM.locationForBottomSheet.value = locationTemporal.value
+                        locationForBottomSheet.value = locationTemporal.value
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) {

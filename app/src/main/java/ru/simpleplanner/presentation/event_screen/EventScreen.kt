@@ -14,8 +14,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -28,11 +26,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -65,11 +61,8 @@ import ru.simpleplanner.presentation.ui.theme.priority_green
 import ru.simpleplanner.presentation.ui.theme.priority_purple
 import ru.simpleplanner.presentation.ui.theme.priority_red
 import ru.simpleplanner.presentation.ui.theme.priority_yellow
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -80,11 +73,18 @@ import java.util.Locale
 fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () -> Unit) {
     val openAlertDialogListOfCalendars = remember { mutableStateOf(false) }
     if (openAlertDialogListOfCalendars.value) {
-        CalendarAlertDialogListOfCalendars(openAlertDialogListOfCalendars, eventVM, eventVM.calendarsList)
+        CalendarAlertDialogListOfCalendars(
+            openAlertDialogListOfCalendars,
+            eventVM.selectedCalendarsId,
+            eventVM.getEvents(),
+            eventVM.calendarsList)
     }
     val openDialogDatePicker = remember { mutableStateOf(false) }
     if(openDialogDatePicker.value) {
-        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker, false)
+        CalendarAlertDialogChooseDate(
+            eventVM.selectedDate,
+            eventVM.pickedDateForBottomSheet,
+            openDialogDatePicker, false)
     }
 
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
@@ -127,18 +127,24 @@ private fun CalendarScaffold(
             Modifier.fillMaxSize()
         },
         topBar = { CalendarSettingsTopBar(openAlertDialogListOfCalendars) },
-        floatingActionButton = { CalendarAddEventButton(scope, bottomSheetScaffoldState, eventVM) },
+        floatingActionButton = { CalendarAddEventButton(
+            scope,
+            bottomSheetScaffoldState
+        ) { eventVM.newEventForBottomSheet() }
+        },
         bottomBar = { CalendarNavigationBar(onClickTask, onClickTimer)},
         containerColor = colorScheme.background
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
-            CalendarListEventsDate(eventVM, openAlertDialogDatePicker)
+            CalendarListEventsDate(eventVM::getTasks, eventVM::getEvents, eventVM.selectedDate, openAlertDialogDatePicker)
             CalendarListEvents(
                 eventVM.eventsList,
                 eventVM.tasksList,
                 scope,
                 bottomSheetScaffoldState,
-                eventVM
+                eventVM::editStatus,
+                eventVM.selectedDate,
+                eventVM::pickedEventForBottomSheet
             )
         }
     }
@@ -169,14 +175,19 @@ private fun CalendarSettingsTopBar(openAlertDialog: MutableState<Boolean>) {
 }
 
 @Composable
-fun CalendarListEventsDate(eventVM: EventVM, openDialogDatePicker: MutableState<Boolean>) {
-    eventVM.getTasks()
-    eventVM.getEvents()
+fun CalendarListEventsDate(
+    getTasks: () -> Unit,
+    getEvents: () -> Unit,
+    selectedDate: MutableState<LocalDate>,
+    openDialogDatePicker: MutableState<Boolean>
+) {
+    getTasks()
+    getEvents()
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
                 .ofPattern("dd MMM yyyy", Locale("en"))
-                .format(eventVM.selectedDate.value)
+                .format(selectedDate.value)
         }
     }
     Row(
@@ -205,7 +216,9 @@ fun CalendarListEvents(
     tasks: MutableState<List<Task>>,
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
-    eventVM: EventVM
+    editStatus: (Int, Boolean) -> Unit,
+    selectedDate: MutableState<LocalDate>,
+    pickedEventForBottomSheet: (String, String, LocalDateTime, LocalDateTime) -> Unit
 ) {
     val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
     val interactionSource = MutableInteractionSource()
@@ -258,7 +271,7 @@ fun CalendarListEvents(
                                 modifier = Modifier
                                     .clickable {
                                         checkedState.value = !checkedState.value
-                                        eventVM.editStatus(item.id!!, checkedState.value)
+                                        editStatus(item.id!!, checkedState.value)
                                     }
                                     .height(16.dp)
                                     .width(16.dp),
@@ -271,7 +284,7 @@ fun CalendarListEvents(
                                 modifier = Modifier
                                     .clickable {
                                         checkedState.value = !checkedState.value
-                                        eventVM.editStatus(item.id!!, checkedState.value)
+                                        editStatus(item.id!!, checkedState.value)
                                     }
                                     .height(16.dp)
                                     .width(16.dp),
@@ -304,7 +317,7 @@ fun CalendarListEvents(
                         .height(64.dp)
                         .fillMaxWidth()
                         .alpha(
-                            if((eventVM.selectedDate.value < LocalDate.now()) ||
+                            if((selectedDate.value < LocalDate.now()) ||
                             (item.end.toLocalDate() == LocalDate.now()
                                     && item.end < LocalDateTime.now()
                                     && item.allDay == 0))
@@ -314,7 +327,7 @@ fun CalendarListEvents(
                             interactionSource = interactionSource,
                             indication = null,
                             onClick = {
-                                eventVM.pickedEventForBottomSheet(
+                                pickedEventForBottomSheet(
                                     item.id,
                                     item.calendarId,
                                     item.start,
@@ -388,12 +401,12 @@ fun CalendarListEvents(
 fun CalendarAddEventButton(
     scope: CoroutineScope,
     scaffoldState: BottomSheetScaffoldState,
-    eventVM: EventVM
+    newEventForBottomSheet: () -> Unit
 ) {
     FloatingActionButton(
         modifier = Modifier.padding(0.dp, 0.dp, 16.dp, 8.dp),
         onClick = {
-            eventVM.newEventForBottomSheet()
+            newEventForBottomSheet()
             scope.launch {
                 scaffoldState.bottomSheetState.expand()
             }
