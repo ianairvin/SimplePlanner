@@ -1,10 +1,10 @@
 package ru.simpleplanner.presentation.event_screen
 
 import android.annotation.SuppressLint
+import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -28,19 +29,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.MaterialDialogState
-import com.vanpra.composematerialdialogs.datetime.date.DatePickerDefaults
-import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.TimePickerDefaults
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import ru.simpleplanner.SimplePlannerApplication
+import ru.simpleplanner.presentation.MainActivity
 import ru.simpleplanner.presentation.ui.theme.*
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -57,6 +59,12 @@ fun CalendarBottomSheet(
     val openAlertDialogRepeatRule = remember { mutableStateOf(false) }
     val openAlertDialogLocation = remember { mutableStateOf(false) }
 
+    val openDialogDatePicker = remember { mutableStateOf(false) }
+    val openDialogTimePicker = remember { mutableStateOf(false) }
+    val isTimePickerStart = remember { mutableStateOf(true)}
+    val stateTimeStart = rememberTimePickerState(initialHour = eventVM.startForBottomSheet.value.hour, initialMinute = 0)
+    val stateTimeEnd = rememberTimePickerState(initialHour = eventVM.endForBottomSheet.value.hour, initialMinute = 0)
+
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         containerColor = colorScheme.background,
@@ -68,7 +76,10 @@ fun CalendarBottomSheet(
             openAlertDialogCalendars,
             openAlertDialogDescription,
             openAlertDialogRepeatRule,
-            openAlertDialogLocation
+            openAlertDialogLocation,
+            openDialogDatePicker,
+            openDialogTimePicker,
+            isTimePickerStart
         ) }
     ){}
 
@@ -87,6 +98,17 @@ fun CalendarBottomSheet(
     if(openAlertDialogLocation.value) {
         CalendarAlertDialogEventLocation(openAlertDialogLocation, eventVM)
     }
+    if(openDialogDatePicker.value) {
+        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker)
+    }
+    if(openDialogTimePicker.value) {
+        CalendarDialogChooseTime(
+            eventVM,
+            openDialogTimePicker,
+            if (isTimePickerStart.value) stateTimeStart else stateTimeEnd,
+            isTimePickerStart
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,16 +120,13 @@ fun CalendarBottomSheetEventContent(
     openAlertDialogCalendars: MutableState<Boolean>,
     openAlertDialogDescription: MutableState<Boolean>,
     openAlertDialogRepeatRule: MutableState<Boolean>,
-    openAlertDialogLocation: MutableState<Boolean>
+    openAlertDialogLocation: MutableState<Boolean>,
+    openDialogDatePicker: MutableState<Boolean>,
+    openDialogTimePicker: MutableState<Boolean>,
+    isTimePickerStart: MutableState<Boolean>
 ) {
 
     val interactionSource = MutableInteractionSource()
-
-    val dateDialogState = rememberMaterialDialogState()
-
-    val startTimeDialogState = rememberMaterialDialogState()
-
-    val endTimeDialogState = rememberMaterialDialogState()
 
     Column(
         modifier = Modifier
@@ -118,9 +137,9 @@ fun CalendarBottomSheetEventContent(
         CalendarBottomSheetEventTitle(eventVM)
         Spacer(modifier = Modifier.padding(8.dp))
         CalendarBottomSheetEventDateAndTime(
-            dateDialogState,
-            startTimeDialogState,
-            endTimeDialogState,
+            openDialogDatePicker,
+            openDialogTimePicker,
+            isTimePickerStart,
             eventVM
         )
         Spacer(modifier = Modifier.padding(8.dp))
@@ -136,9 +155,6 @@ fun CalendarBottomSheetEventContent(
         Spacer(modifier = Modifier.padding(8.dp))
         CalendarBottomSheetButtons(scope, scaffoldState, eventVM)
     }
-    CalendarBottomSheetEventDatePicker(dateDialogState, eventVM)
-    CalendarBottomSheetEventStartTimePicker(startTimeDialogState, eventVM)
-    CalendarBottomSheetEventEndTimePicker(endTimeDialogState, eventVM)
 }
 
 @Composable
@@ -161,29 +177,32 @@ fun CalendarBottomSheetEventTitle(eventVM: EventVM){
 @SuppressLint("AutoboxingStateValueProperty")
 @Composable
 fun CalendarBottomSheetEventDateAndTime(
-    dateDialogState: MaterialDialogState,
-    startTimeDialogState: MaterialDialogState,
-    endTimeDialogState: MaterialDialogState,
+    openDialogDatePicker: MutableState<Boolean>,
+    openDialogTimePicker: MutableState<Boolean>,
+    isTimePickerStart: MutableState<Boolean>,
     eventVM: EventVM
     ){
     val formattedDate by remember {
         derivedStateOf {
             DateTimeFormatter
-                .ofPattern("dd LLL", Locale("ru"))
+                .ofPattern("dd LLL", Locale("en"))
                 .format(eventVM.pickedDateForBottomSheet.value)
         }
     }
+
+    val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
+
     val formattedTimeStart by remember {
         derivedStateOf {
             DateTimeFormatter
-                .ofPattern("HH:mm")
+                .ofPattern(if(is24Hour) "HH:mm" else "HH:mm a")
                 .format(eventVM.startForBottomSheet.value)
         }
     }
     val formattedTimeEnd by remember {
         derivedStateOf {
             DateTimeFormatter
-                .ofPattern("HH:mm")
+                .ofPattern(if(is24Hour) "HH:mm" else "HH:mm a")
                 .format(eventVM.endForBottomSheet.value)
         }
     }
@@ -199,7 +218,7 @@ fun CalendarBottomSheetEventDateAndTime(
             verticalArrangement = Arrangement.Center
         ){
             Text(
-                text = "Дата",
+                text = "Date",
                 modifier = Modifier.height(20.dp),
                 fontWeight = FontWeight.W700
             )
@@ -210,7 +229,7 @@ fun CalendarBottomSheetEventDateAndTime(
                     .background(colorScheme.outlineVariant)
                     .height(64.dp)
                     .fillMaxWidth()
-                    .clickable { dateDialogState.show() },
+                    .clickable { openDialogDatePicker.value = true },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -227,7 +246,7 @@ fun CalendarBottomSheetEventDateAndTime(
             verticalArrangement = Arrangement.Center
         ){
             Text(
-                text = "Начало",
+                text = "Start",
                 modifier = Modifier.height(20.dp),
                 fontWeight = FontWeight.W700
             )
@@ -239,7 +258,10 @@ fun CalendarBottomSheetEventDateAndTime(
                         .background(colorScheme.outlineVariant)
                         .height(64.dp)
                         .fillMaxWidth()
-                        .clickable { startTimeDialogState.show() }
+                        .clickable {
+                            isTimePickerStart.value = true
+                            openDialogTimePicker.value = true
+                        }
                 } else {
                     Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
@@ -266,7 +288,7 @@ fun CalendarBottomSheetEventDateAndTime(
             verticalArrangement = Arrangement.Center
         ){
             Text(
-                text = "Конец",
+                text = "End",
                 modifier = Modifier.height(20.dp),
                 fontWeight = FontWeight.W700
             )
@@ -278,7 +300,9 @@ fun CalendarBottomSheetEventDateAndTime(
                         .background(colorScheme.outlineVariant)
                         .height(64.dp)
                         .fillMaxWidth()
-                        .clickable { endTimeDialogState.show() }
+                        .clickable {
+                            isTimePickerStart.value = false
+                            openDialogTimePicker.value = true }
                 } else {
                     Modifier
                         .clip(shape = RoundedCornerShape(16.dp))
@@ -300,125 +324,6 @@ fun CalendarBottomSheetEventDateAndTime(
 }
 
 @Composable
-fun CalendarBottomSheetEventDatePicker(
-    dateDialogState: MaterialDialogState,
-    eventVM: EventVM
-){
-    var pickedDateTemporal = eventVM.pickedDateForBottomSheet.value
-    MaterialDialog(
-        dialogState = dateDialogState,
-        backgroundColor = colorScheme.background,
-        buttons = {
-            positiveButton(text = "ОК") {
-                eventVM.pickedDateForBottomSheet.value = pickedDateTemporal
-            }
-            negativeButton(text = "Отмена")
-        },
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        datepicker(
-            initialDate = pickedDateTemporal,
-            title = "",
-            locale = Locale("ru"),
-            colors = DatePickerDefaults.colors(
-                dateActiveBackgroundColor = colorScheme.primary,
-                dateInactiveTextColor = colorScheme.onBackground,
-                headerBackgroundColor = colorScheme.primary,
-                headerTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
-                calendarHeaderTextColor = colorScheme.onBackground,
-                dateActiveTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
-            )
-        ) {
-           pickedDateTemporal = it
-        }
-    }
-}
-
-@Composable
-fun CalendarBottomSheetEventStartTimePicker(
-    startTimeDialogState: MaterialDialogState,
-    eventVM: EventVM
-){
-    var pickedTimeTemporal = eventVM.startForBottomSheet.value
-    MaterialDialog(
-        dialogState = startTimeDialogState,
-        backgroundColor = colorScheme.background,
-        buttons = {
-            positiveButton(text = "ОК") {
-                eventVM.startForBottomSheet.value = pickedTimeTemporal
-                if(eventVM.startForBottomSheet.value > eventVM.endForBottomSheet.value){
-                    eventVM.endForBottomSheet.value = eventVM.startForBottomSheet.value
-                }
-            }
-            negativeButton(text = "Отмена")
-        }, 
-        shape = RoundedCornerShape(24.dp),
-        content = {
-            Spacer(modifier = Modifier.padding(16.dp))
-            timepicker(
-                initialTime = eventVM.startForBottomSheet.value,
-                title = "",
-                is24HourClock = true,
-                colors = TimePickerDefaults.colors(
-                    headerTextColor = colorScheme.onPrimary,
-                    inactivePeriodBackground = colorScheme.surface,
-                    inactiveBackgroundColor = colorScheme.surface,
-                    activeBackgroundColor = colorScheme.primary,
-                    activeTextColor = colorScheme.onBackground,
-                    inactiveTextColor = colorScheme.onBackground,
-                    selectorColor = colorScheme.primaryContainer,
-                    selectorTextColor = colorScheme.onBackground
-                )
-            ) {
-                pickedTimeTemporal = it
-            }
-        }
-    )
-}
-
-@Composable
-fun CalendarBottomSheetEventEndTimePicker(
-    endTimeDialogState: MaterialDialogState,
-    eventVM: EventVM
-){
-    var pickedTimeTemporal = eventVM.endForBottomSheet.value
-    MaterialDialog(
-        dialogState = endTimeDialogState,
-        backgroundColor = colorScheme.background,
-        buttons = {
-            positiveButton(text = "ОК") {
-                eventVM.endForBottomSheet.value = pickedTimeTemporal
-                if(eventVM.startForBottomSheet.value > eventVM.endForBottomSheet.value){
-                    eventVM.startForBottomSheet.value = eventVM.endForBottomSheet.value
-                }
-            }
-            negativeButton(text = "Отмена")
-        },
-        shape = RoundedCornerShape(24.dp),
-        content = {
-            Spacer(modifier = Modifier.padding(16.dp))
-            timepicker(
-                initialTime = eventVM.endForBottomSheet.value,
-                title = "",
-                is24HourClock = true,
-                colors = TimePickerDefaults.colors(
-                    headerTextColor = colorScheme.onPrimary,
-                    inactivePeriodBackground = colorScheme.surface,
-                    inactiveBackgroundColor = colorScheme.surface,
-                    activeBackgroundColor = colorScheme.primary,
-                    activeTextColor = colorScheme.onBackground,
-                    inactiveTextColor = colorScheme.onBackground,
-                    selectorColor = colorScheme.primaryContainer,
-                    selectorTextColor = colorScheme.onBackground
-                )
-            ) {
-                pickedTimeTemporal = it
-            }
-        }
-    )
-}
-
-@Composable
 fun CalendarBottomSheetEventRepeatRule(
     eventVM: EventVM,
     openAlertDialogRepeatRule: MutableState<Boolean>,
@@ -433,10 +338,10 @@ fun CalendarBottomSheetEventRepeatRule(
         )
         Spacer(modifier = Modifier.padding(2.dp))
         Row( modifier = Modifier
-            .weight(6f).
-            clickable(
+            .weight(6f)
+            .clickable(
                 interactionSource = interactionSource,
-                onClick = {openAlertDialogRepeatRule.value = true },
+                onClick = { openAlertDialogRepeatRule.value = true },
                 indication = null
             ),
             horizontalArrangement = Arrangement.End) {

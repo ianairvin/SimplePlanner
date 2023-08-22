@@ -12,6 +12,6 @@ class InitializeDB : RoomDatabase.Callback() {
         db.execSQL("INSERT INTO picked_calendar (id) " +
                 "values(0)")
         db.execSQL("INSERT INTO open_section_task (id, today, tomorrow, week, someDay, doneTask) " +
-                "values(1, false, false, false, false, false)")
+                "values(1, 0, 0, 0, 0, 0)")
     }
 }

@@ -255,7 +255,6 @@ class EventRepositoryImpl @Inject constructor (
                 put(CalendarContract.Events.EVENT_TIMEZONE, event.timeZone)
             }
         }
-        Log.i("qqqq", event.repeatRule.toString()?:"dkdk")
         appContext.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
     }
 

@@ -1,6 +1,5 @@
 package ru.simpleplanner.presentation.event_screen
 
-import android.graphics.Color.parseColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -13,6 +12,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -25,9 +26,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -42,18 +45,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.ColorUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.vanpra.composematerialdialogs.MaterialDialog
-import com.vanpra.composematerialdialogs.datetime.date.DatePickerDefaults
-import com.vanpra.composematerialdialogs.datetime.date.datepicker
-import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ru.simpleplanner.R
@@ -65,8 +62,11 @@ import ru.simpleplanner.presentation.ui.theme.priority_green
 import ru.simpleplanner.presentation.ui.theme.priority_purple
 import ru.simpleplanner.presentation.ui.theme.priority_red
 import ru.simpleplanner.presentation.ui.theme.priority_yellow
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -75,10 +75,15 @@ import java.util.Locale
 @ExperimentalPermissionsApi
 @Composable
 fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () -> Unit) {
-    val openAlertDialog = remember { mutableStateOf(false) }
-    if (openAlertDialog.value) {
-        CalendarAlertDialogListOfCalendars(openAlertDialog, eventVM, eventVM.calendarsList)
+    val openAlertDialogListOfCalendars = remember { mutableStateOf(false) }
+    if (openAlertDialogListOfCalendars.value) {
+        CalendarAlertDialogListOfCalendars(openAlertDialogListOfCalendars, eventVM, eventVM.calendarsList)
     }
+    val openDialogDatePicker = remember { mutableStateOf(false) }
+    if(openDialogDatePicker.value) {
+        CalendarAlertDialogChooseDate(eventVM, openDialogDatePicker)
+    }
+
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = SheetState(
             skipPartiallyExpanded = true,
@@ -89,7 +94,8 @@ fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () ->
     val scope = rememberCoroutineScope()
 
     CalendarScaffold(
-        openAlertDialog,
+        openAlertDialogListOfCalendars,
+        openDialogDatePicker,
         scope,
         bottomSheetScaffoldState,
         eventVM,
@@ -101,7 +107,8 @@ fun EventActivity(eventVM: EventVM, onClickTask: () -> Unit, onClickTimer: () ->
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CalendarScaffold(
-    openAlertDialog: MutableState<Boolean>,
+    openAlertDialogListOfCalendars: MutableState<Boolean>,
+    openAlertDialogDatePicker: MutableState<Boolean>,
     scope: CoroutineScope,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
     eventVM: EventVM,
@@ -116,13 +123,13 @@ private fun CalendarScaffold(
         } else {
             Modifier.fillMaxSize()
         },
-        topBar = { CalendarSettingsTopBar(openAlertDialog) },
+        topBar = { CalendarSettingsTopBar(openAlertDialogListOfCalendars) },
         floatingActionButton = { CalendarAddEventButton(scope, bottomSheetScaffoldState, eventVM) },
         bottomBar = { CalendarNavigationBar(onClickTask, onClickTimer)},
         containerColor = colorScheme.background
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
-            CalendarListEventsDate(eventVM)
+            CalendarListEventsDate(eventVM, openAlertDialogDatePicker)
             CalendarListEvents(
                 eventVM.eventsList,
                 eventVM.tasksList,
@@ -158,8 +165,9 @@ private fun CalendarSettingsTopBar(openAlertDialog: MutableState<Boolean>) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarListEventsDate(eventVM: EventVM) {
+fun CalendarListEventsDate(eventVM: EventVM, openDialogDatePicker: MutableState<Boolean>) {
     eventVM.getTasks()
     eventVM.getEvents()
     val formattedDate by remember {
@@ -169,7 +177,6 @@ fun CalendarListEventsDate(eventVM: EventVM) {
                 .format(eventVM.selectedDate.value)
         }
     }
-    val dateDialogState = rememberMaterialDialogState()
     Row(
         modifier = Modifier
             .padding(32.dp, 0.dp, 32.dp, 16.dp),
@@ -179,41 +186,12 @@ fun CalendarListEventsDate(eventVM: EventVM) {
         Text(text = formattedDate)
         Spacer(modifier = Modifier.padding(8.dp))
         Button(onClick = {
-            dateDialogState.show() },
+            openDialogDatePicker.value = true },
             colors = ButtonDefaults.buttonColors(
                 containerColor = colorScheme.primary,
                 contentColor = md_theme_light_onPrimary
         )) {
             Text(text = "Выбрать дату")
-        }
-    }
-    var pickedDateTemporal = eventVM.selectedDate.value
-    MaterialDialog(
-        dialogState = dateDialogState,
-        backgroundColor = colorScheme.background,
-        shape = RoundedCornerShape(24.dp),
-        buttons = {
-            positiveButton(text = "ОК") {
-                eventVM.selectedDate.value = pickedDateTemporal
-            }
-            negativeButton(text = "Отмена")
-        },
-    ) {
-        datepicker(
-            initialDate = eventVM.selectedDate.value,
-            title = "",
-            locale = Locale("ru"),
-            colors = DatePickerDefaults.colors(
-                dateActiveBackgroundColor = colorScheme.primary,
-                dateInactiveTextColor = colorScheme.onBackground,
-                headerBackgroundColor = colorScheme.primary,
-                headerTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary,
-                calendarHeaderTextColor = colorScheme.onBackground,
-                dateActiveTextColor = if(isSystemInDarkTheme()) colorScheme.onBackground else colorScheme.onPrimary
-            )
-
-        ) {
-            pickedDateTemporal = it
         }
     }
 }

@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -22,6 +24,9 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -32,6 +37,95 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ru.simpleplanner.domain.entities.Calendar
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.util.Locale
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalendarDialogChooseTime(
+    eventVM: EventVM,
+    openDialog: MutableState<Boolean>,
+    state: TimePickerState,
+    isTimePickerStart: MutableState<Boolean>){
+   // val formatter = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+    DatePickerDialog(
+        onDismissRequest = { openDialog.value = false },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    openDialog.value = false
+                    if(isTimePickerStart.value){
+                        eventVM.startForBottomSheet.value =
+                            LocalTime.of(state.hour, state.minute)
+                    } else {
+                     eventVM.endForBottomSheet.value =
+                         LocalTime.of(state.hour, state.minute)
+                    }
+                },
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    openDialog.value = false
+                }
+            ) {
+                Text("Cancel")
+            }
+        }
+    ) {
+
+        TimePicker(state = state)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalendarAlertDialogChooseDate(
+    eventVM: EventVM,
+    openDialog: MutableState<Boolean>
+){
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = eventVM.selectedDate.value.atStartOfDay(ZoneOffset.of("Z")).toInstant().toEpochMilli())
+    DatePickerDialog(
+        onDismissRequest = { openDialog.value = false },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    openDialog.value = false
+                    eventVM.selectedDate.value =
+                        datePickerState.selectedDateMillis?.let {
+                            Instant.ofEpochMilli(it)
+                                .atZone(ZoneId.systemDefault()).toLocalDate()
+                        }!!
+                },
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    openDialog.value = false
+                }
+            ) {
+                Text("Cancel")
+            }
+        }
+    ) {
+        DatePicker(
+            state = datePickerState,
+            title = { "" },
+            showModeToggle = false
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
