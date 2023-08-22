@@ -132,7 +132,7 @@ fun CalendarAlertDialogChooseDate(
     ) {
         DatePicker(
             state = datePickerState,
-            title = { "" },
+            title = { },
             showModeToggle = false
         )
     }
