@@ -15,6 +15,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +46,6 @@ import ru.simpleplanner.presentation.ui.theme.md_theme_dark_onBackground
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity(
 ) {
-
     private val eventVM: EventVM by viewModels()
     private val taskVM: TaskVM by viewModels()
     private val timerVM: TimerVM by viewModels()
@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity(
         setContent {
             val navController = rememberNavController()
             SimplePlannerTheme {
+                UiController(isSystemInDarkTheme())
                 val permissionsState = rememberMultiplePermissionsState(
                     permissions = listOf(
                         Manifest.permission.READ_CALENDAR,
@@ -66,8 +67,7 @@ class MainActivity : ComponentActivity(
                         Manifest.permission.VIBRATE
                     )
                 )
-                Box(modifier = Modifier.background(colorScheme.background)) {
-                    UiController(isSystemInDarkTheme())
+                Surface(modifier = Modifier.fillMaxSize()) {
                     if (permissionsState.allPermissionsGranted) {
                         NavHost(navController = navController, startDestination = "event_screen") {
 
@@ -143,47 +143,42 @@ class MainActivity : ComponentActivity(
         eventVM.savePickedCalendars()
         taskVM.saveOpenSection()
     }
-    @Composable
-    fun UiController(darkTheme: Boolean){
-        val systemUiController = rememberSystemUiController()
-        SideEffect {
-            systemUiController.setStatusBarColor(color = Color.Transparent)
-            systemUiController.statusBarDarkContentEnabled = !darkTheme
-            systemUiController.setNavigationBarColor(color = Color.Transparent)
-        }
+}
+@Composable
+fun UiController(darkTheme: Boolean){
+    val systemUiController = rememberSystemUiController()
+    val colorBackground = colorScheme.background
+    SideEffect {
+        systemUiController.setStatusBarColor(color = Color.Transparent)
+        systemUiController.statusBarDarkContentEnabled = !darkTheme
+        systemUiController.setNavigationBarColor(colorBackground)
+        systemUiController.navigationBarDarkContentEnabled = !darkTheme
     }
+}
 
-    @OptIn(ExperimentalPermissionsApi::class)
-    @Composable
-    private fun GetPermissions(permissionsState: MultiplePermissionsState) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = colorScheme.background,
-            content = {contentPadding ->
-                Column(
-                    modifier = Modifier
-                        .padding(contentPadding)
-                        .fillMaxSize()
-                        .background(colorScheme.background),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Добавьте разрешение для использования календаря.",
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorScheme.primary,
-                            contentColor = md_theme_dark_onBackground
-                        ),
-                        onClick = { permissionsState.launchMultiplePermissionRequest() }
-                    ) {
-                        Text("Дать разрешение")
-                    }
-                }
-            }
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+private fun GetPermissions(permissionsState: MultiplePermissionsState) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Добавьте разрешение\nдля использования календаря.",
+            textAlign = TextAlign.Center,
+            color = colorScheme.onBackground
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorScheme.primary,
+                contentColor = md_theme_dark_onBackground
+            ),
+            onClick = { permissionsState.launchMultiplePermissionRequest() }
+        ) {
+            Text("Дать разрешение")
+        }
     }
 }

@@ -50,9 +50,9 @@ class TimerVM @Inject constructor(
 
     private var timer: CountDownTimer? = null
 
-    val timeDefaultWork = mutableLongStateOf(0L)
-    val timeDefaultShortRest = mutableLongStateOf(0L)
-    val timeDefaultLongRest = mutableLongStateOf(0L)
+    val timeDefaultWork = mutableLongStateOf(1500000)
+    val timeDefaultShortRest = mutableLongStateOf(300000)
+    val timeDefaultLongRest = mutableLongStateOf(900000)
 
     var currentTimeMode = timeDefaultWork
     val timeLeft = mutableLongStateOf(0L)
